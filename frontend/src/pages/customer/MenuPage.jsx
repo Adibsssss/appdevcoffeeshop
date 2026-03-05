@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { PRODUCTS } from "../../data/products";
+import { useState, useMemo, useEffect } from "react";
+import { productsAPI } from "../../utils/api";
 import Layout from "../../components/layout/Layout";
 import ProductCard from "../../components/menu/ProductCard";
 import CategoryFilter from "../../components/menu/CategoryFilter";
@@ -7,9 +7,28 @@ import CategoryFilter from "../../components/menu/CategoryFilter";
 export default function MenuPage() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [search, setSearch] = useState("");
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        const data = await productsAPI.list();
+        // API returns array directly or {results: [...]}
+        setProducts(Array.isArray(data) ? data : data.results || []);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   const filtered = useMemo(() => {
-    return PRODUCTS.filter((p) => {
+    return products.filter((p) => {
       const matchCat = activeCategory === "all" || p.category === activeCategory;
       const matchSearch =
         !search ||
@@ -17,7 +36,7 @@ export default function MenuPage() {
         p.description.toLowerCase().includes(search.toLowerCase());
       return matchCat && matchSearch;
     });
-  }, [activeCategory, search]);
+  }, [products, activeCategory, search]);
 
   return (
     <Layout>
@@ -56,7 +75,18 @@ export default function MenuPage() {
 
       {/* Products Grid */}
       <div className="max-w-6xl mx-auto px-6 py-8">
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-20">
+            <div className="text-6xl mb-4 animate-float">☕</div>
+            <p className="font-display text-xl text-[#3C1810]">Loading menu...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-20">
+            <div className="text-6xl mb-4">😕</div>
+            <p className="font-display text-xl text-[#3C1810] mb-2">Could not load menu</p>
+            <p className="text-[#8B4513]/60 text-sm">{error}</p>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="text-center py-20">
             <div className="text-7xl mb-4">🔍</div>
             <h3 className="font-display text-2xl text-[#3C1810] mb-2">No items found</h3>

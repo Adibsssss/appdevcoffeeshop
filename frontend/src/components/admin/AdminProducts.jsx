@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { PRODUCTS as INITIAL_PRODUCTS, CATEGORIES } from "../../data/products";
+import { useState, useEffect } from "react";
+import { productsAPI } from "../../utils/api";
+import { CATEGORIES } from "../../data/products";
 import Button from "../ui/Button";
 import Input from "../ui/Input";
 import Modal from "../ui/Modal";
@@ -8,24 +9,44 @@ import { useToast } from "../ui/Toast";
 
 const EMPTY_PRODUCT = {
   name: "", category: "espresso", price: "", description: "",
-  emoji: "☕", badge: "", available: true,
+  emoji: "☕", badge: "", available: true, featured: false,
 };
 
 export default function AdminProducts() {
   const { addToast } = useToast();
-  const [products, setProducts] = useState(INITIAL_PRODUCTS);
-  const [search, setSearch] = useState("");
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [search, setSearch]     = useState("");
   const [filterCat, setFilterCat] = useState("all");
-  const [modal, setModal] = useState({ open: false, mode: "add", product: null });
-  const [form, setForm] = useState(EMPTY_PRODUCT);
+  const [modal, setModal]       = useState({ open: false, mode: "add", product: null });
+  const [form, setForm]         = useState(EMPTY_PRODUCT);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors]     = useState({});
+  const [saving, setSaving]     = useState(false);
+
+  const load = async () => {
+    try {
+      setLoading(true);
+      const data = await productsAPI.list({ available: "" }); // admin sees all
+      setProducts(Array.isArray(data) ? data : data.results || []);
+    } catch (e) {
+      addToast("Failed to load products.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, []);
 
   const filtered = products.filter((p) => {
-    const matchCat = filterCat === "all" || p.category === filterCat;
+    const matchCat    = filterCat === "all" || p.category === filterCat;
     const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase());
     return matchCat && matchSearch;
   });
+
+  if (loading) return (
+    <div className="text-center py-16"><div className="text-5xl animate-float mb-4">☕</div><p className="font-display text-xl text-[#3C1810]">Loading products...</p></div>
+  );
 
   const openAdd = () => {
     setForm(EMPTY_PRODUCT);
@@ -47,36 +68,46 @@ export default function AdminProducts() {
     return e;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const v = validate();
     if (Object.keys(v).length) { setErrors(v); return; }
-
-    const productData = {
-      ...form,
-      price: Number(form.price),
-      badge: form.badge || null,
-      id: modal.mode === "edit" ? modal.product.id : `p${Date.now()}`,
-      featured: form.featured || false,
-    };
-
-    if (modal.mode === "add") {
-      setProducts((p) => [...p, productData]);
-      addToast(`${form.emoji} ${form.name} added!`, "success");
-    } else {
-      setProducts((p) => p.map((x) => x.id === modal.product.id ? productData : x));
-      addToast(`${form.emoji} ${form.name} updated!`, "success");
+    setSaving(true);
+    const payload = { ...form, price: Number(form.price), badge: form.badge || null };
+    try {
+      if (modal.mode === "add") {
+        await productsAPI.create(payload);
+        addToast(`${form.emoji} ${form.name} added!`, "success");
+      } else {
+        await productsAPI.update(modal.product.id, payload);
+        addToast(`${form.emoji} ${form.name} updated!`, "success");
+      }
+      setModal({ open: false, mode: "add", product: null });
+      load();
+    } catch (err) {
+      addToast(err.message, "error");
+    } finally {
+      setSaving(false);
     }
-    setModal({ open: false, mode: "add", product: null });
   };
 
-  const handleDelete = (product) => {
-    setProducts((p) => p.filter((x) => x.id !== product.id));
-    addToast(`${product.emoji} ${product.name} deleted.`, "error");
-    setDeleteConfirm(null);
+  const handleDelete = async (product) => {
+    try {
+      await productsAPI.delete(product.id);
+      addToast(`${product.emoji} ${product.name} deleted.`, "error");
+      setDeleteConfirm(null);
+      load();
+    } catch (err) {
+      addToast(err.message, "error");
+    }
   };
 
-  const toggleAvailable = (id) => {
-    setProducts((p) => p.map((x) => x.id === id ? { ...x, available: !x.available } : x));
+  const toggleAvailable = async (product) => {
+    try {
+      await productsAPI.toggle(product.id);
+      load();
+    } catch (err) {
+      addToast(err.message, "error");
+    }
   };
 
   const EMOJIS = ["☕", "🧋", "🍵", "🥤", "🍫", "🥐", "🍪", "🌰", "🍮", "🫧", "🖤", "🥭", "💜", "🍂", "🌀", "🫐", "🥑", "🥪", "🥣", "🍰", "🍓"];
@@ -148,7 +179,7 @@ export default function AdminProducts() {
                   </td>
                   <td className="px-5 py-4">
                     <button
-                      onClick={() => toggleAvailable(product.id)}
+                      onClick={() => toggleAvailable(product)}
                       className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
                         product.available
                           ? "bg-green-100 text-green-700 hover:bg-green-200"
@@ -293,7 +324,7 @@ export default function AdminProducts() {
             <Button variant="secondary" fullWidth onClick={() => setModal({ ...modal, open: false })}>
               Cancel
             </Button>
-            <Button fullWidth onClick={handleSave}>
+            <Button fullWidth onClick={handleSave} loading={saving}>
               {modal.mode === "add" ? "Add Product" : "Save Changes"}
             </Button>
           </div>

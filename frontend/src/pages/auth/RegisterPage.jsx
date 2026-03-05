@@ -38,8 +38,7 @@ export default function RegisterPage() {
     const v = validate();
     if (Object.keys(v).length) { setErrors(v); return; }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    const result = register(form.name.trim(), form.email, form.password);
+    const result = await register(form.name.trim(), form.email, form.password, form.confirm);
     setLoading(false);
     if (result.success) {
       addToast(`Account created! Welcome, ${result.user.name.split(" ")[0]}! 🎉`, "success");

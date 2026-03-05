@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../components/ui/Toast";
+import { ordersAPI } from "../../utils/api";
+import { ordersAPI } from "../../utils/api";
 import Layout from "../../components/layout/Layout";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
@@ -60,7 +62,7 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [successModal, setSuccessModal] = useState(false);
-  const [orderId] = useState(`BH-${Date.now().toString().slice(-6)}`);
+  const [placedOrder, setPlacedOrder] = useState(null);
 
   if (items.length === 0 && !successModal) {
     return (
@@ -101,10 +103,17 @@ export default function CheckoutPage() {
     const v = validate();
     if (Object.keys(v).length) { setErrors(v); return; }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 2000)); // simulate payment
-    setLoading(false);
-    clearCart();
-    setSuccessModal(true);
+    try {
+      const apiItems = items.map((i) => ({ product_id: i.id, quantity: i.quantity }));
+      const result = await ordersAPI.place(apiItems, paymentMethod);
+      setPlacedOrder(result.order);
+      clearCart();
+      setSuccessModal(true);
+    } catch (err) {
+      addToast(err.message || "Order failed. Please try again.", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -274,7 +283,7 @@ export default function CheckoutPage() {
           </p>
           <div className="bg-[#FFF8F0] rounded-2xl p-4 mb-6">
             <p className="text-sm text-[#8B4513]/60 mb-1">Order Reference</p>
-            <p className="font-display text-2xl text-[#D4956A]">{orderId}</p>
+            <p className="font-display text-2xl text-[#D4956A]">{placedOrder?.reference || "—"}</p>
           </div>
           <div className="flex flex-col gap-2">
             <Button fullWidth onClick={() => { setSuccessModal(false); navigate("/menu"); }}>

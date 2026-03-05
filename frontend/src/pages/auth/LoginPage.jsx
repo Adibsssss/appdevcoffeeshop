@@ -28,8 +28,7 @@ export default function LoginPage() {
     const v = validate();
     if (Object.keys(v).length) { setErrors(v); return; }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 800)); // simulate network
-    const result = login(form.email, form.password);
+    const result = await login(form.email, form.password);
     setLoading(false);
     if (result.success) {
       addToast(`Welcome back, ${result.user.name.split(" ")[0]}! 👋`, "success");
@@ -94,20 +93,11 @@ export default function LoginPage() {
             <h2 className="font-display text-3xl text-[#3C1810] mb-1">Welcome back!</h2>
             <p className="text-[#8B4513]/60 text-sm mb-7">Sign in to your account to continue.</p>
 
-            {/* Demo Buttons */}
-            <div className="flex gap-2 mb-6">
-              <button
-                onClick={() => fillDemo("customer")}
-                className="flex-1 py-2 px-3 rounded-xl bg-[#F5E6D3] text-[#8B4513] text-xs font-semibold hover:bg-[#D4956A] hover:text-white transition-all"
-              >
-                👤 Demo Customer
-              </button>
-              <button
-                onClick={() => fillDemo("admin")}
-                className="flex-1 py-2 px-3 rounded-xl bg-[#F5E6D3] text-[#8B4513] text-xs font-semibold hover:bg-[#D4956A] hover:text-white transition-all"
-              >
-                👑 Demo Admin
-              </button>
+            {/* Demo hint */}
+            <div className="bg-[#FFF8F0] border border-[#F5E6D3] rounded-2xl p-3 mb-6 text-xs text-[#8B4513]/70">
+              <span className="font-bold">💡 Admin demo:</span> admin@brewhaven.com / admin123
+              <br />
+              <span className="font-bold">👤 Customer demo:</span> jane@email.com / password123
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">

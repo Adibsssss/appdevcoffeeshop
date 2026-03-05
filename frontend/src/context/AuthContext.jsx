@@ -1,55 +1,56 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import { authAPI, setTokens, clearTokens, getTokens } from "../utils/api";
 
 const AuthContext = createContext(null);
 
-const MOCK_USERS = [
-  { id: "u001", name: "Admin User", email: "admin@brewhaven.com", password: "admin123", role: "admin" },
-  { id: "u002", name: "Jane Doe", email: "jane@email.com", password: "password123", role: "customer" },
-];
-
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser]       = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // On mount: restore user from sessionStorage if tokens exist
   useEffect(() => {
     const stored = sessionStorage.getItem("brewhaven_user");
-    if (stored) setUser(JSON.parse(stored));
+    const { access } = getTokens();
+    if (stored && access) {
+      setUser(JSON.parse(stored));
+    }
     setLoading(false);
   }, []);
 
-  const login = (email, password) => {
-    const found = MOCK_USERS.find(
-      (u) => u.email === email && u.password === password
-    );
-    if (found) {
-      const { password: _, ...safeUser } = found;
-      setUser(safeUser);
-      sessionStorage.setItem("brewhaven_user", JSON.stringify(safeUser));
-      return { success: true, user: safeUser };
+  const login = async (email, password) => {
+    try {
+      const data = await authAPI.login(email, password);
+      setTokens(data.tokens.access, data.tokens.refresh);
+      setUser(data.user);
+      sessionStorage.setItem("brewhaven_user", JSON.stringify(data.user));
+      return { success: true, user: data.user };
+    } catch (err) {
+      return { success: false, error: err.message };
     }
-    return { success: false, error: "Invalid email or password." };
   };
 
-  const register = (name, email, password) => {
-    const exists = MOCK_USERS.find((u) => u.email === email);
-    if (exists) return { success: false, error: "Email already registered." };
-    const newUser = {
-      id: `u${Date.now()}`,
-      name,
-      email,
-      password,
-      role: "customer",
-    };
-    MOCK_USERS.push(newUser);
-    const { password: _, ...safeUser } = newUser;
-    setUser(safeUser);
-    sessionStorage.setItem("brewhaven_user", JSON.stringify(safeUser));
-    return { success: true, user: safeUser };
+  const register = async (name, email, password, password2) => {
+    try {
+      const data = await authAPI.register(name, email, password, password2);
+      setTokens(data.tokens.access, data.tokens.refresh);
+      setUser(data.user);
+      sessionStorage.setItem("brewhaven_user", JSON.stringify(data.user));
+      return { success: true, user: data.user };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
   };
 
-  const logout = () => {
-    setUser(null);
-    sessionStorage.removeItem("brewhaven_user");
+  const logout = async () => {
+    try {
+      const { refresh } = getTokens();
+      if (refresh) await authAPI.logout(refresh);
+    } catch (_) {
+      // ignore logout errors
+    } finally {
+      setUser(null);
+      clearTokens();
+    }
   };
 
   return (
