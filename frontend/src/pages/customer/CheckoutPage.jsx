@@ -4,7 +4,6 @@ import { useCart } from "../../context/CartContext";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../components/ui/Toast";
 import { ordersAPI } from "../../utils/api";
-import { ordersAPI } from "../../utils/api";
 import Layout from "../../components/layout/Layout";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
@@ -20,7 +19,9 @@ const PAYMENT_METHODS = [
 function OrderSummary({ items, totalPrice }) {
   return (
     <div className="bg-white rounded-3xl border-2 border-[#F5E6D3] p-6">
-      <h3 className="font-display text-xl text-[#3C1810] mb-4">Order Summary</h3>
+      <h3 className="font-display text-xl text-[#3C1810] mb-4">
+        Order Summary
+      </h3>
       <div className="space-y-3 mb-4">
         {items.map((item) => (
           <div key={item.id} className="flex items-center gap-3">
@@ -28,19 +29,25 @@ function OrderSummary({ items, totalPrice }) {
               {item.emoji}
             </span>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-[#3C1810] text-sm truncate">{item.name}</p>
+              <p className="font-semibold text-[#3C1810] text-sm truncate">
+                {item.name}
+              </p>
               <p className="text-[#8B4513]/60 text-xs">x{item.quantity}</p>
             </div>
-            <p className="font-bold text-[#D4956A] text-sm">₱{(item.price * item.quantity).toFixed(2)}</p>
+            <p className="font-bold text-[#D4956A] text-sm">
+              ₱{(item.price * item.quantity).toFixed(2)}
+            </p>
           </div>
         ))}
       </div>
       <div className="border-t border-[#F5E6D3] pt-4 space-y-2">
         <div className="flex justify-between text-sm text-[#8B4513]/70">
-          <span>Subtotal</span><span>₱{totalPrice.toFixed(2)}</span>
+          <span>Subtotal</span>
+          <span>₱{totalPrice.toFixed(2)}</span>
         </div>
         <div className="flex justify-between text-sm text-[#8B4513]/70">
-          <span>Service Fee</span><span>₱0.00</span>
+          <span>Service Fee</span>
+          <span>₱0.00</span>
         </div>
         <div className="flex justify-between font-display text-xl text-[#3C1810] pt-2 border-t border-[#F5E6D3]">
           <span>Total</span>
@@ -58,7 +65,12 @@ export default function CheckoutPage() {
   const navigate = useNavigate();
 
   const [paymentMethod, setPaymentMethod] = useState("card");
-  const [card, setCard] = useState({ number: "", name: "", expiry: "", cvv: "" });
+  const [card, setCard] = useState({
+    number: "",
+    name: "",
+    expiry: "",
+    cvv: "",
+  });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [successModal, setSuccessModal] = useState(false);
@@ -69,8 +81,12 @@ export default function CheckoutPage() {
       <Layout>
         <div className="max-w-2xl mx-auto px-6 py-20 text-center">
           <div className="text-7xl mb-4 animate-float">🛒</div>
-          <h2 className="font-display text-3xl text-[#3C1810] mb-2">Cart is empty!</h2>
-          <p className="text-[#8B4513]/60 mb-6">Add some items before checking out.</p>
+          <h2 className="font-display text-3xl text-[#3C1810] mb-2">
+            Cart is empty!
+          </h2>
+          <p className="text-[#8B4513]/60 mb-6">
+            Add some items before checking out.
+          </p>
           <Button onClick={() => navigate("/menu")}>Browse Menu</Button>
         </div>
       </Layout>
@@ -92,19 +108,27 @@ export default function CheckoutPage() {
     if (paymentMethod !== "card" && paymentMethod !== "cash") return {};
     if (paymentMethod === "cash") return {};
     const e = {};
-    if (!card.number || card.number.replace(/\s/g, "").length < 16) e.number = "Enter a valid 16-digit card number.";
+    if (!card.number || card.number.replace(/\s/g, "").length < 16)
+      e.number = "Enter a valid 16-digit card number.";
     if (!card.name.trim()) e.name = "Cardholder name is required.";
-    if (!card.expiry || card.expiry.length < 5) e.expiry = "Enter a valid expiry date.";
+    if (!card.expiry || card.expiry.length < 5)
+      e.expiry = "Enter a valid expiry date.";
     if (!card.cvv || card.cvv.length < 3) e.cvv = "CVV must be 3-4 digits.";
     return e;
   };
 
   const handlePlaceOrder = async () => {
     const v = validate();
-    if (Object.keys(v).length) { setErrors(v); return; }
+    if (Object.keys(v).length) {
+      setErrors(v);
+      return;
+    }
     setLoading(true);
     try {
-      const apiItems = items.map((i) => ({ product_id: i.id, quantity: i.quantity }));
+      const apiItems = items.map((i) => ({
+        product_id: i.id,
+        quantity: i.quantity,
+      }));
       const result = await ordersAPI.place(apiItems, paymentMethod);
       setPlacedOrder(result.order);
       clearCart();
@@ -128,7 +152,9 @@ export default function CheckoutPage() {
           <div className="lg:col-span-3 space-y-6">
             {/* Customer Info */}
             <div className="bg-white rounded-3xl border-2 border-[#F5E6D3] p-6">
-              <h3 className="font-display text-xl text-[#3C1810] mb-4">📋 Customer Details</h3>
+              <h3 className="font-display text-xl text-[#3C1810] mb-4">
+                📋 Customer Details
+              </h3>
               <div className="flex items-center gap-4 bg-[#FFF8F0] rounded-2xl p-4">
                 <div className="w-12 h-12 rounded-2xl bg-[#F5E6D3] flex items-center justify-center text-2xl">
                   👤
@@ -142,17 +168,23 @@ export default function CheckoutPage() {
 
             {/* Payment Method */}
             <div className="bg-white rounded-3xl border-2 border-[#F5E6D3] p-6">
-              <h3 className="font-display text-xl text-[#3C1810] mb-4">💰 Payment Method</h3>
+              <h3 className="font-display text-xl text-[#3C1810] mb-4">
+                💰 Payment Method
+              </h3>
               <div className="grid grid-cols-2 gap-3 mb-5">
                 {PAYMENT_METHODS.map((m) => (
                   <button
                     key={m.id}
-                    onClick={() => { setPaymentMethod(m.id); setErrors({}); }}
+                    onClick={() => {
+                      setPaymentMethod(m.id);
+                      setErrors({});
+                    }}
                     className={`
                       flex items-center gap-3 p-3 rounded-2xl border-2 font-semibold text-sm transition-all
-                      ${paymentMethod === m.id
-                        ? "border-[#D4956A] bg-[#FFF8F0] text-[#8B4513]"
-                        : "border-[#F5E6D3] text-[#3C1810] hover:border-[#D4956A]/50"
+                      ${
+                        paymentMethod === m.id
+                          ? "border-[#D4956A] bg-[#FFF8F0] text-[#8B4513]"
+                          : "border-[#F5E6D3] text-[#3C1810] hover:border-[#D4956A]/50"
                       }
                     `}
                   >
@@ -167,7 +199,9 @@ export default function CheckoutPage() {
                 <div className="space-y-4 animate-slide-up">
                   <div className="bg-gradient-to-br from-[#3C1810] to-[#8B4513] rounded-2xl p-5 text-white">
                     <div className="flex justify-between items-start mb-8">
-                      <span className="font-accent text-lg text-[#D4956A]">BrewHaven</span>
+                      <span className="font-accent text-lg text-[#D4956A]">
+                        BrewHaven
+                      </span>
                       <span className="text-2xl">💳</span>
                     </div>
                     <p className="font-mono text-lg tracking-widest mb-4">
@@ -176,11 +210,15 @@ export default function CheckoutPage() {
                     <div className="flex justify-between text-sm">
                       <div>
                         <p className="text-white/50 text-xs">Card Holder</p>
-                        <p className="font-semibold">{card.name || "YOUR NAME"}</p>
+                        <p className="font-semibold">
+                          {card.name || "YOUR NAME"}
+                        </p>
                       </div>
                       <div>
                         <p className="text-white/50 text-xs">Expires</p>
-                        <p className="font-semibold">{card.expiry || "MM/YY"}</p>
+                        <p className="font-semibold">
+                          {card.expiry || "MM/YY"}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -190,7 +228,12 @@ export default function CheckoutPage() {
                     placeholder="1234 5678 9012 3456"
                     icon="💳"
                     value={card.number}
-                    onChange={(e) => setCard({ ...card, number: formatCardNumber(e.target.value) })}
+                    onChange={(e) =>
+                      setCard({
+                        ...card,
+                        number: formatCardNumber(e.target.value),
+                      })
+                    }
                     error={errors.number}
                     maxLength={19}
                   />
@@ -208,7 +251,12 @@ export default function CheckoutPage() {
                       placeholder="MM/YY"
                       icon="📅"
                       value={card.expiry}
-                      onChange={(e) => setCard({ ...card, expiry: formatExpiry(e.target.value) })}
+                      onChange={(e) =>
+                        setCard({
+                          ...card,
+                          expiry: formatExpiry(e.target.value),
+                        })
+                      }
                       error={errors.expiry}
                       maxLength={5}
                     />
@@ -217,7 +265,12 @@ export default function CheckoutPage() {
                       placeholder="•••"
                       icon="🔒"
                       value={card.cvv}
-                      onChange={(e) => setCard({ ...card, cvv: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+                      onChange={(e) =>
+                        setCard({
+                          ...card,
+                          cvv: e.target.value.replace(/\D/g, "").slice(0, 4),
+                        })
+                      }
                       error={errors.cvv}
                       maxLength={4}
                     />
@@ -232,24 +285,38 @@ export default function CheckoutPage() {
               {paymentMethod === "gcash" && (
                 <div className="animate-slide-up bg-blue-50 rounded-2xl p-5 text-center">
                   <div className="text-5xl mb-3">📱</div>
-                  <p className="font-semibold text-blue-700 mb-1">GCash Payment</p>
-                  <p className="text-blue-600 text-sm">You will be redirected to GCash after placing the order. (Demo)</p>
+                  <p className="font-semibold text-blue-700 mb-1">
+                    GCash Payment
+                  </p>
+                  <p className="text-blue-600 text-sm">
+                    You will be redirected to GCash after placing the order.
+                    (Demo)
+                  </p>
                 </div>
               )}
 
               {paymentMethod === "maya" && (
                 <div className="animate-slide-up bg-purple-50 rounded-2xl p-5 text-center">
                   <div className="text-5xl mb-3">🟣</div>
-                  <p className="font-semibold text-purple-700 mb-1">Maya Payment</p>
-                  <p className="text-purple-600 text-sm">You will be redirected to Maya after placing the order. (Demo)</p>
+                  <p className="font-semibold text-purple-700 mb-1">
+                    Maya Payment
+                  </p>
+                  <p className="text-purple-600 text-sm">
+                    You will be redirected to Maya after placing the order.
+                    (Demo)
+                  </p>
                 </div>
               )}
 
               {paymentMethod === "cash" && (
                 <div className="animate-slide-up bg-green-50 rounded-2xl p-5 text-center">
                   <div className="text-5xl mb-3">💵</div>
-                  <p className="font-semibold text-green-700 mb-1">Pay at Counter</p>
-                  <p className="text-green-600 text-sm">Show your order receipt and pay when you pick up your order.</p>
+                  <p className="font-semibold text-green-700 mb-1">
+                    Pay at Counter
+                  </p>
+                  <p className="text-green-600 text-sm">
+                    Show your order receipt and pay when you pick up your order.
+                  </p>
                 </div>
               )}
             </div>
@@ -264,7 +331,9 @@ export default function CheckoutPage() {
               onClick={handlePlaceOrder}
               loading={loading}
             >
-              {loading ? "Processing Payment..." : `Place Order · ₱${totalPrice.toFixed(2)}`}
+              {loading
+                ? "Processing Payment..."
+                : `Place Order · ₱${totalPrice.toFixed(2)}`}
             </Button>
             <p className="text-xs text-center text-[#8B4513]/50">
               🔒 Demo payments only. No real charges.
@@ -274,22 +343,46 @@ export default function CheckoutPage() {
       </div>
 
       {/* Success Modal */}
-      <Modal isOpen={successModal} onClose={() => { setSuccessModal(false); navigate("/menu"); }} size="md">
+      <Modal
+        isOpen={successModal}
+        onClose={() => {
+          setSuccessModal(false);
+          navigate("/menu");
+        }}
+        size="md"
+      >
         <div className="text-center py-4">
           <div className="text-7xl mb-4 animate-bounce-in">🎉</div>
-          <h2 className="font-display text-3xl text-[#3C1810] mb-2">Order Placed!</h2>
+          <h2 className="font-display text-3xl text-[#3C1810] mb-2">
+            Order Placed!
+          </h2>
           <p className="text-[#8B4513]/70 mb-4">
             Your order has been received and is being prepared.
           </p>
           <div className="bg-[#FFF8F0] rounded-2xl p-4 mb-6">
             <p className="text-sm text-[#8B4513]/60 mb-1">Order Reference</p>
-            <p className="font-display text-2xl text-[#D4956A]">{placedOrder?.reference || "—"}</p>
+            <p className="font-display text-2xl text-[#D4956A]">
+              {placedOrder?.reference || "—"}
+            </p>
           </div>
           <div className="flex flex-col gap-2">
-            <Button fullWidth onClick={() => { setSuccessModal(false); navigate("/menu"); }}>
+            <Button
+              fullWidth
+              onClick={() => {
+                setSuccessModal(false);
+                navigate("/menu");
+              }}
+            >
               🍽️ Order More
             </Button>
-            <Button variant="secondary" fullWidth onClick={() => { setSuccessModal(false); navigate("/"); }}>
+            <Button
+              variant="secondary"
+              fullWidth
+              onClick={() => {
+                setSuccessModal(false);
+                navigate("/");
+              }}
+            >
               Back to Home
             </Button>
           </div>
