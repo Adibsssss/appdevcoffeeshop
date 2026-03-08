@@ -1,42 +1,177 @@
 import { useState, useEffect } from "react";
 import { reportsAPI } from "../../utils/api";
 
-function BarChart({ data, valueKey, labelKey = "day", color = "#D4956A" }) {
+function LineChart({ data, valueKey, labelKey, color = "#D4956A" }) {
+  const [tooltip, setTooltip] = useState(null);
+
   if (!data || data.length === 0)
     return (
-      <div className="h-40 flex items-center justify-center text-[#8B4513]/40 text-sm">
+      <div className="h-48 flex items-center justify-center text-[#8B4513]/40 text-sm">
         No data yet.
       </div>
     );
-  const max = Math.max(...data.map((d) => d[valueKey])) || 1;
+
+  const W = 600,
+    H = 160,
+    PAD = { top: 16, right: 16, bottom: 32, left: 48 };
+  const innerW = W - PAD.left - PAD.right;
+  const innerH = H - PAD.top - PAD.bottom;
+
+  const values = data.map((d) => Number(d[valueKey]) || 0);
+  const maxVal = Math.max(...values) || 1;
+  const minVal = 0;
+
+  const xStep = innerW / Math.max(data.length - 1, 1);
+
+  const pts = data.map((d, i) => ({
+    x: PAD.left + (data.length === 1 ? innerW / 2 : i * xStep),
+    y: PAD.top + innerH - ((Number(d[valueKey]) || 0) / maxVal) * innerH,
+    val: Number(d[valueKey]) || 0,
+    label: d[labelKey],
+  }));
+
+  // Build smooth SVG path
+  const linePath = pts
+    .map((p, i) => {
+      if (i === 0) return `M ${p.x} ${p.y}`;
+      const prev = pts[i - 1];
+      const cpx = (prev.x + p.x) / 2;
+      return `C ${cpx} ${prev.y} ${cpx} ${p.y} ${p.x} ${p.y}`;
+    })
+    .join(" ");
+
+  // Fill area under the line
+  const fillPath =
+    linePath +
+    ` L ${pts[pts.length - 1].x} ${PAD.top + innerH}` +
+    ` L ${pts[0].x} ${PAD.top + innerH} Z`;
+
+  // Y-axis gridlines
+  const gridLines = [0, 0.25, 0.5, 0.75, 1].map((frac) => {
+    const val = maxVal * frac;
+    const y = PAD.top + innerH - frac * innerH;
+    const label =
+      valueKey === "revenue"
+        ? val >= 1000
+          ? `₱${(val / 1000).toFixed(1)}k`
+          : `₱${Math.round(val)}`
+        : Math.round(val);
+    return { y, label };
+  });
+
   return (
-    <div className="flex items-end gap-2 h-40">
-      {data.map((item, i) => {
-        const height = Math.max(4, (item[valueKey] / max) * 100);
-        return (
-          <div
-            key={i}
-            className="flex-1 flex flex-col items-center gap-1 group"
-          >
-            <div
-              className="w-full rounded-t-lg transition-all duration-300 group-hover:opacity-80"
-              style={{
-                height: `${height}%`,
-                backgroundColor: color,
-                minHeight: "4px",
-              }}
+    <div className="relative select-none">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className="w-full"
+        style={{ height: 200 }}
+        onMouseLeave={() => setTooltip(null)}
+      >
+        <defs>
+          <linearGradient id={`fill-${valueKey}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+
+        {/* Grid lines */}
+        {gridLines.map(({ y, label }) => (
+          <g key={y}>
+            <line
+              x1={PAD.left}
+              y1={y}
+              x2={W - PAD.right}
+              y2={y}
+              stroke="#F5E6D3"
+              strokeWidth="1"
+              strokeDasharray="4 3"
             />
-            <span className="text-xs text-[#8B4513]/60 font-medium">
-              {item[labelKey]}
-            </span>
-          </div>
-        );
-      })}
+            <text
+              x={PAD.left - 6}
+              y={y + 4}
+              textAnchor="end"
+              fontSize="10"
+              fill="#C4A882"
+            >
+              {label}
+            </text>
+          </g>
+        ))}
+
+        {/* Fill */}
+        <path d={fillPath} fill={`url(#fill-${valueKey})`} />
+
+        {/* Line */}
+        <path
+          d={linePath}
+          fill="none"
+          stroke={color}
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        {/* Dots + hover areas */}
+        {pts.map((p, i) => (
+          <g key={i} onMouseEnter={() => setTooltip({ ...p, index: i })}>
+            {/* Invisible wide hover zone */}
+            <rect
+              x={p.x - xStep / 2}
+              y={PAD.top}
+              width={xStep}
+              height={innerH + PAD.bottom}
+              fill="transparent"
+            />
+            {/* Dot */}
+            <circle
+              cx={p.x}
+              cy={p.y}
+              r={tooltip?.index === i ? 6 : 4}
+              fill="white"
+              stroke={color}
+              strokeWidth={tooltip?.index === i ? 2.5 : 2}
+              style={{ transition: "r 0.15s" }}
+            />
+            {/* X-axis label */}
+            <text
+              x={p.x}
+              y={H - 4}
+              textAnchor="middle"
+              fontSize="10"
+              fill="#C4A882"
+              style={{ overflow: "hidden" }}
+            >
+              {String(p.label).length > 5
+                ? String(p.label).slice(0, 5)
+                : p.label}
+            </text>
+          </g>
+        ))}
+      </svg>
+
+      {/* Floating tooltip */}
+      {tooltip && (
+        <div
+          className="absolute bg-[#3C1810] text-white text-xs rounded-xl px-3 py-2 pointer-events-none shadow-lg z-10 whitespace-nowrap"
+          style={{
+            left: `${(tooltip.x / W) * 100}%`,
+            top: `${(tooltip.y / (H + 40)) * 100}%`,
+            transform: "translate(-50%, -130%)",
+          }}
+        >
+          <p className="font-semibold">{tooltip.label}</p>
+          <p className="text-[#D4956A] font-bold">
+            {valueKey === "revenue"
+              ? `₱${tooltip.val.toLocaleString()}`
+              : `${tooltip.val} orders`}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
 
-// ── CSV helpers ───────────────────────────────────────────────────────────────
+//  CSV helpers
 function downloadCSV(filename, rows) {
   const csv = rows
     .map((r) =>
@@ -51,22 +186,54 @@ function downloadCSV(filename, rows) {
   a.click();
   URL.revokeObjectURL(url);
 }
-
 function formatDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+//  Period config
+const PERIODS = {
+  daily: {
+    label: "Daily",
+    chartTitle: "Orders — Last 7 Days",
+    revenueTitle: "Revenue — Last 7 Days",
+    dataKey: "dailyData",
+    labelKey: "day",
+    ordersKey: "orders",
+    revenueKey: "revenue",
+    statLabel: "Orders (7 days)",
+  },
+  weekly: {
+    label: "Weekly",
+    chartTitle: "Orders — Last 4 Weeks",
+    revenueTitle: "Revenue — Last 4 Weeks",
+    dataKey: "weeklyData",
+    labelKey: "week",
+    ordersKey: "orders",
+    revenueKey: "revenue",
+    statLabel: "Orders (4 weeks)",
+  },
+  monthly: {
+    label: "Monthly",
+    chartTitle: "Orders — Last 7 Months",
+    revenueTitle: "Revenue — Last 7 Months",
+    dataKey: "monthlyData",
+    labelKey: "month",
+    ordersKey: "orders",
+    revenueKey: "revenue",
+    statLabel: "Orders (7 months)",
+  },
+};
 
+//
 export default function AdminReports() {
-  const [period, setPeriod] = useState("weekly");
+  const [period, setPeriod] = useState("daily");
   const [summary, setSummary] = useState(null);
   const [dailyData, setDaily] = useState([]);
   const [weeklyData, setWeekly] = useState([]);
   const [monthlyData, setMonthly] = useState([]);
   const [topProducts, setTop] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [exporting, setExporting] = useState(null); // "daily" | "weekly" | "monthly" | null
+  const [exporting, setExporting] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -93,30 +260,42 @@ export default function AdminReports() {
     load();
   }, []);
 
-  // ── Export handlers ──────────────────────────────────────────────────────
+  //  Derive active dataset from period
+  const dataMap = { dailyData, weeklyData, monthlyData };
+  const cfg = PERIODS[period];
+  const activeData = dataMap[cfg.dataKey] || [];
+
+  const periodOrders = activeData.reduce(
+    (s, d) => s + (d[cfg.ordersKey] || 0),
+    0
+  );
+  const periodRevenue = activeData.reduce(
+    (s, d) => s + Number(d[cfg.revenueKey] || 0),
+    0
+  );
+  const avgOrder =
+    periodOrders > 0 ? Math.round(periodRevenue / periodOrders) : 0;
+
+  //  Export handlers
   const exportDaily = async () => {
     setExporting("daily");
     try {
-      const data = await reportsAPI.daily(30); // last 30 days
-      const rows = [
+      const data = await reportsAPI.daily(30);
+      const raw = Array.isArray(data) ? data : [];
+      downloadCSV(`brewhaven-daily-report-${formatDate()}.csv`, [
         ["BrewHaven — Daily Revenue Report"],
         [`Generated: ${new Date().toLocaleString()}`],
         [],
         ["Date", "Orders", "Revenue (₱)"],
-        ...(Array.isArray(data) ? data : []).map((d) => [
-          d.day,
-          d.orders,
-          d.revenue,
-        ]),
+        ...raw.map((d) => [d.day, d.orders, d.revenue]),
         [],
         [
           "TOTAL",
-          data.reduce((s, d) => s + d.orders, 0),
-          data.reduce((s, d) => s + Number(d.revenue), 0).toFixed(2),
+          raw.reduce((s, d) => s + d.orders, 0),
+          raw.reduce((s, d) => s + Number(d.revenue), 0).toFixed(2),
         ],
-      ];
-      downloadCSV(`brewhaven-daily-report-${formatDate()}.csv`, rows);
-    } catch (e) {
+      ]);
+    } catch {
       alert("Failed to export daily report.");
     } finally {
       setExporting(null);
@@ -126,9 +305,9 @@ export default function AdminReports() {
   const exportWeekly = async () => {
     setExporting("weekly");
     try {
-      const data = await reportsAPI.weekly(8); // last 8 weeks
+      const data = await reportsAPI.weekly(8);
       const raw = Array.isArray(data) ? data : [];
-      const rows = [
+      downloadCSV(`brewhaven-weekly-report-${formatDate()}.csv`, [
         ["BrewHaven — Weekly Revenue Report"],
         [`Generated: ${new Date().toLocaleString()}`],
         [],
@@ -140,9 +319,8 @@ export default function AdminReports() {
           raw.reduce((s, d) => s + d.orders, 0),
           raw.reduce((s, d) => s + Number(d.revenue), 0).toFixed(2),
         ],
-      ];
-      downloadCSV(`brewhaven-weekly-report-${formatDate()}.csv`, rows);
-    } catch (e) {
+      ]);
+    } catch {
       alert("Failed to export weekly report.");
     } finally {
       setExporting(null);
@@ -152,9 +330,9 @@ export default function AdminReports() {
   const exportMonthly = async () => {
     setExporting("monthly");
     try {
-      const data = await reportsAPI.monthly(12); // last 12 months
+      const data = await reportsAPI.monthly(12);
       const raw = Array.isArray(data) ? data : [];
-      const rows = [
+      downloadCSV(`brewhaven-monthly-report-${formatDate()}.csv`, [
         ["BrewHaven — Monthly Revenue Report"],
         [`Generated: ${new Date().toLocaleString()}`],
         [],
@@ -166,16 +344,20 @@ export default function AdminReports() {
           raw.reduce((s, d) => s + d.orders, 0),
           raw.reduce((s, d) => s + Number(d.revenue), 0).toFixed(2),
         ],
-      ];
-      downloadCSV(`brewhaven-monthly-report-${formatDate()}.csv`, rows);
-    } catch (e) {
+      ]);
+    } catch {
       alert("Failed to export monthly report.");
     } finally {
       setExporting(null);
     }
   };
 
-  // ────────────────────────────────────────────────────────────────────────
+  const EXPORTS = [
+    { key: "daily", label: "Daily", handler: exportDaily },
+    { key: "weekly", label: "Weekly", handler: exportWeekly },
+    { key: "monthly", label: "Monthly", handler: exportMonthly },
+  ];
+
   if (loading)
     return (
       <div className="text-center py-16">
@@ -186,52 +368,41 @@ export default function AdminReports() {
       </div>
     );
 
-  const totalRevenue = summary ? Number(summary.total.revenue) : 0;
-  const totalOrders = dailyData.reduce((s, d) => s + d.orders, 0);
-  const avgOrder = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
-
-  const EXPORTS = [
-    { key: "daily", label: "Daily", handler: exportDaily },
-    { key: "weekly", label: "Weekly", handler: exportWeekly },
-    { key: "monthly", label: "Monthly", handler: exportMonthly },
-  ];
-
   return (
     <div className="space-y-6">
+      {/*  Period selector  */}
       <div className="flex gap-2">
-        {["daily", "weekly", "monthly"].map((p) => (
+        {Object.entries(PERIODS).map(([key, val]) => (
           <button
-            key={p}
-            onClick={() => setPeriod(p)}
-            className={`px-4 py-2 rounded-2xl text-sm font-semibold transition-all capitalize ${
-              period === p
-                ? "bg-[#D4956A] text-white"
+            key={key}
+            onClick={() => setPeriod(key)}
+            className={`px-5 py-2 rounded-2xl text-sm font-semibold transition-all ${
+              period === key
+                ? "bg-[#D4956A] text-white shadow-md"
                 : "bg-white text-[#8B4513] border-2 border-[#F5E6D3] hover:border-[#D4956A]"
             }`}
           >
-            {p}
+            {val.label}
           </button>
         ))}
       </div>
 
+      {/*  KPI cards — react to period  */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         {[
           {
-            label: "Total Revenue",
-            value: `₱${totalRevenue.toLocaleString()}`,
-            icon: "💰",
+            label: "Revenue",
+            value: `₱${periodRevenue.toLocaleString()}`,
             color: "text-green-600",
           },
           {
-            label: "Orders (7 days)",
-            value: totalOrders,
-            icon: "📦",
+            label: cfg.statLabel,
+            value: periodOrders,
             color: "text-blue-600",
           },
           {
             label: "Avg Order Value",
-            value: `₱${avgOrder}`,
-            icon: "📊",
+            value: `₱${avgOrder.toLocaleString()}`,
             color: "text-purple-600",
           },
         ].map((card) => (
@@ -239,9 +410,7 @@ export default function AdminReports() {
             key={card.label}
             className="bg-white rounded-3xl border-2 border-[#F5E6D3] p-5"
           >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-3xl">{card.icon}</span>
-            </div>
+            <span className="text-3xl block mb-3">{card.icon}</span>
             <p className={`font-display text-3xl ${card.color} mb-1`}>
               {card.value}
             </p>
@@ -250,39 +419,43 @@ export default function AdminReports() {
         ))}
       </div>
 
+      {/*  Charts — react to period  */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-3xl border-2 border-[#F5E6D3] p-6">
           <h3 className="font-display text-lg text-[#3C1810] mb-1">
-            📦 Orders This Week
+            {cfg.chartTitle}
           </h3>
           <p className="text-xs text-[#8B4513]/50 mb-5">
-            Total: {totalOrders} orders
+            Total: {periodOrders} orders
           </p>
-          <BarChart
-            data={dailyData}
-            valueKey="orders"
-            labelKey="day"
+          <LineChart
+            data={activeData}
+            valueKey={cfg.ordersKey}
+            labelKey={cfg.labelKey}
             color="#4A90D9"
           />
         </div>
         <div className="bg-white rounded-3xl border-2 border-[#F5E6D3] p-6">
           <h3 className="font-display text-lg text-[#3C1810] mb-1">
-            💰 Monthly Revenue
+            {cfg.revenueTitle}
           </h3>
-          <p className="text-xs text-[#8B4513]/50 mb-5">Last 7 months</p>
-          <BarChart
-            data={monthlyData}
-            valueKey="revenue"
-            labelKey="month"
+          <p className="text-xs text-[#8B4513]/50 mb-5">
+            Total: ₱{periodRevenue.toLocaleString()}
+          </p>
+          <LineChart
+            data={activeData}
+            valueKey={cfg.revenueKey}
+            labelKey={cfg.labelKey}
             color="#D4956A"
           />
         </div>
       </div>
 
+      {/*  Top products  */}
       <div className="bg-white rounded-3xl border-2 border-[#F5E6D3] p-6">
         <div className="flex items-center justify-between mb-5">
           <h3 className="font-display text-xl text-[#3C1810]">
-            🏆 Top Performing Products
+            Top Performing Products
           </h3>
           <span className="text-xs text-[#8B4513]/50 font-medium">
             By revenue
@@ -290,14 +463,14 @@ export default function AdminReports() {
         </div>
         {topProducts.length === 0 ? (
           <p className="text-[#8B4513]/40 text-sm text-center py-8">
-            No sales data yet. Place some orders to see results!
+            No sales data yet.
           </p>
         ) : (
           <div className="space-y-4">
             {topProducts.map((p, i) => {
-              const maxRevenue = topProducts[0]?.total_revenue || 1;
-              const pct = Math.round((p.total_revenue / maxRevenue) * 100);
-              const RANK_COLORS = [
+              const maxRev = topProducts[0]?.total_revenue || 1;
+              const pct = Math.round((p.total_revenue / maxRev) * 100);
+              const RANK = [
                 "text-yellow-500",
                 "text-gray-400",
                 "text-amber-600",
@@ -308,7 +481,7 @@ export default function AdminReports() {
                 <div key={p.product_id} className="flex items-center gap-4">
                   <span
                     className={`font-display text-xl ${
-                      RANK_COLORS[i] || ""
+                      RANK[i] || ""
                     } w-6 flex-shrink-0`}
                   >
                     #{i + 1}
@@ -324,7 +497,7 @@ export default function AdminReports() {
                     </div>
                     <div className="h-2 bg-[#F5E6D3] rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-[#D4956A] to-[#8B4513] rounded-full"
+                        className="h-full bg-gradient-to-r from-[#D4956A] to-[#8B4513] rounded-full transition-all duration-500"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -339,10 +512,10 @@ export default function AdminReports() {
         )}
       </div>
 
-      {/* ── Export buttons ── */}
+      {/*  Export  */}
       <div className="bg-white rounded-3xl border-2 border-[#F5E6D3] p-5">
         <h4 className="font-display text-lg text-[#3C1810] mb-1">
-          📄 Export Reports
+          Export Reports
         </h4>
         <p className="text-xs text-[#8B4513]/50 mb-4">
           Downloads a CSV file to your computer.
@@ -352,7 +525,7 @@ export default function AdminReports() {
             <button
               key={key}
               onClick={handler}
-              disabled={exporting === key}
+              disabled={!!exporting}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-semibold text-sm transition-all border-2 ${
                 exporting === key
                   ? "bg-[#F5E6D3] border-[#F5E6D3] text-[#C4A882] cursor-not-allowed"
@@ -384,8 +557,7 @@ export default function AdminReports() {
                 </>
               ) : (
                 <>
-                  <span>📄</span>
-                  <span>Export {label} Report</span>
+                  <span>Export {label}</span>
                   <span className="text-[#C4A882] text-xs font-normal">
                     CSV
                   </span>

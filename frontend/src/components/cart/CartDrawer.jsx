@@ -8,12 +8,13 @@ function CartItem({ item }) {
   const { updateQuantity, removeItem } = useCart();
   return (
     <div className="flex items-center gap-3 py-3 border-b border-[#F5E6D3] last:border-0">
-      <div className="w-12 h-12 bg-[#FFF8F0] rounded-2xl flex items-center justify-center text-2xl flex-shrink-0">
-        {item.emoji}
-      </div>
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-[#3C1810] text-sm truncate">{item.name}</p>
-        <p className="text-[#D4956A] font-bold text-sm">₱{(item.price * item.quantity).toFixed(2)}</p>
+        <p className="font-semibold text-[#3C1810] text-sm truncate">
+          {item.name}
+        </p>
+        <p className="text-[#D4956A] font-bold text-sm">
+          ₱{(item.price * item.quantity).toFixed(2)}
+        </p>
       </div>
       <div className="flex items-center gap-1 flex-shrink-0">
         <button
@@ -22,7 +23,9 @@ function CartItem({ item }) {
         >
           −
         </button>
-        <span className="w-7 text-center font-bold text-[#3C1810] text-sm">{item.quantity}</span>
+        <span className="w-7 text-center font-bold text-[#3C1810] text-sm">
+          {item.quantity}
+        </span>
         <button
           onClick={() => updateQuantity(item.id, item.quantity + 1)}
           className="w-7 h-7 rounded-xl bg-[#F5E6D3] text-[#8B4513] font-bold hover:bg-[#D4956A] hover:text-white transition-all text-sm"
@@ -41,14 +44,17 @@ function CartItem({ item }) {
 }
 
 export default function CartDrawer() {
-  const { items, isOpen, setIsOpen, totalItems, totalPrice, clearCart } = useCart();
+  const { items, isOpen, setIsOpen, totalItems, totalPrice, clearCart } =
+    useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (isOpen) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "";
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [isOpen]);
 
   const handleCheckout = () => {
@@ -72,7 +78,8 @@ export default function CartDrawer() {
       />
 
       {/* Drawer */}
-      <div className="relative w-full max-w-sm bg-white shadow-2xl flex flex-col animate-slide-up md:animate-none"
+      <div
+        className="relative w-full max-w-sm bg-white shadow-2xl flex flex-col animate-slide-up md:animate-none"
         style={{ animation: "slideInRight 0.3s ease-out" }}
       >
         {/* Header */}
@@ -99,12 +106,19 @@ export default function CartDrawer() {
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full py-16 gap-4 text-center">
               <span className="text-6xl animate-float">🛒</span>
-              <p className="font-display text-xl text-[#3C1810]">Your cart is empty</p>
-              <p className="text-[#8B4513]/60 text-sm">Add some items from the menu!</p>
+              <p className="font-display text-xl text-[#3C1810]">
+                Your cart is empty
+              </p>
+              <p className="text-[#8B4513]/60 text-sm">
+                Add some items from the menu!
+              </p>
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => { setIsOpen(false); navigate("/menu"); }}
+                onClick={() => {
+                  setIsOpen(false);
+                  navigate("/menu");
+                }}
               >
                 Browse Menu
               </Button>

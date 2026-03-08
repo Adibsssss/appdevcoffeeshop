@@ -25,9 +25,6 @@ function OrderSummary({ items, totalPrice }) {
       <div className="space-y-3 mb-4">
         {items.map((item) => (
           <div key={item.id} className="flex items-center gap-3">
-            <span className="text-2xl w-10 h-10 bg-[#FFF8F0] rounded-xl flex items-center justify-center flex-shrink-0">
-              {item.emoji}
-            </span>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-[#3C1810] text-sm truncate">
                 {item.name}
