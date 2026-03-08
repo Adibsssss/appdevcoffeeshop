@@ -4,7 +4,11 @@ from rest_framework.response import Response
 
 from brewhaven.mongo import get_collection, get_db
 from brewhaven.apps.products.permissions import IsAdmin
-from brewhaven.apps.users.models import User
+
+
+
+def _users_col():
+    return get_collection("users")
 
 
 def _orders():
@@ -56,7 +60,7 @@ class DashboardSummaryView(APIView):
             },
             "total": {
                 "products":   _products().count_documents({}),
-                "customers":  User.objects.filter(role="customer").count(),
+                "customers":  _users_col().count_documents({"role": "customer"}),
                 "all_orders": _orders().count_documents({}),
                 "revenue":    round(total_revenue, 2),
             },

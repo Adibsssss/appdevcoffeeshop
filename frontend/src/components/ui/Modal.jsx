@@ -1,6 +1,12 @@
 import { useEffect } from "react";
 
-export default function Modal({ isOpen, onClose, title, children, size = "md" }) {
+export default function Modal({
+  isOpen,
+  onClose,
+  title,
+  children,
+  size = "md",
+}) {
   const SIZES = {
     sm: "max-w-sm",
     md: "max-w-md",
@@ -10,9 +16,9 @@ export default function Modal({ isOpen, onClose, title, children, size = "md" })
   };
 
   useEffect(() => {
-    if (isOpen) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "";
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -24,12 +30,15 @@ export default function Modal({ isOpen, onClose, title, children, size = "md" })
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
-      {/* Modal */}
+
+      {/* Modal — max-h so it never exceeds the viewport, inner body scrolls */}
       <div
-        className={`relative bg-white rounded-3xl shadow-2xl w-full ${SIZES[size]} animate-pop-in`}
+        className={`relative bg-white rounded-3xl shadow-2xl w-full ${SIZES[size]} animate-pop-in flex flex-col`}
+        style={{ maxHeight: "calc(100vh - 2rem)" }}
       >
+        {/* Fixed header */}
         {title && (
-          <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-[#F5E6D3]">
+          <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-[#F5E6D3] flex-shrink-0">
             <h2 className="text-xl font-display text-[#3C1810]">{title}</h2>
             <button
               onClick={onClose}
@@ -39,7 +48,9 @@ export default function Modal({ isOpen, onClose, title, children, size = "md" })
             </button>
           </div>
         )}
-        <div className="px-6 pb-6 pt-4">{children}</div>
+
+        {/* Scrollable body */}
+        <div className="px-6 pb-6 pt-4 overflow-y-auto flex-1">{children}</div>
       </div>
     </div>
   );

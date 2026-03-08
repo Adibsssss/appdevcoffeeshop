@@ -22,7 +22,7 @@ const STATUS_STYLES = {
   ready: "bg-purple-100 text-purple-700",
 };
 
-function Overview() {
+function Overview({ onTabChange }) {
   const [summary, setSummary] = useState(null);
   const [recentOrders, setRecent] = useState([]);
   const [topProducts, setTop] = useState([]);
@@ -213,20 +213,24 @@ function Overview() {
                 label: "Manage Products",
                 icon: "☕",
                 color: "bg-amber-50 text-amber-700 hover:bg-amber-100",
+                tab: "products",
               },
               {
                 label: "View All Orders",
                 icon: "📦",
                 color: "bg-blue-50 text-blue-700 hover:bg-blue-100",
+                tab: "orders",
               },
               {
                 label: "Generate Report",
                 icon: "📈",
                 color: "bg-purple-50 text-purple-700 hover:bg-purple-100",
+                tab: "reports",
               },
             ].map((a) => (
               <button
                 key={a.label}
+                onClick={() => onTabChange(a.tab)}
                 className={`w-full flex items-center gap-3 p-3 rounded-2xl font-semibold text-sm transition-all ${a.color}`}
               >
                 <span>{a.icon}</span>
@@ -289,7 +293,7 @@ export default function AdminDashboard() {
           ))}
         </div>
         <div key={activeTab} className="animate-slide-up">
-          {activeTab === "overview" && <Overview />}
+          {activeTab === "overview" && <Overview onTabChange={setActiveTab} />}
           {activeTab === "products" && <AdminProducts />}
           {activeTab === "orders" && <AdminOrders />}
           {activeTab === "reports" && <AdminReports />}

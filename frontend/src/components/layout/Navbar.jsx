@@ -22,10 +22,10 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 group">
-          <span className="text-3xl group-hover:animate-wiggle inline-block transition-transform">☕</span>
-          <span
-            className="text-xl font-accent text-[#3C1810] group-hover:text-[#D4956A] transition-colors"
-          >
+          <span className="text-3xl group-hover:animate-wiggle inline-block transition-transform">
+            ☕
+          </span>
+          <span className="text-xl font-accent text-[#3C1810] group-hover:text-[#D4956A] transition-colors">
             BrewHaven
           </span>
         </Link>
