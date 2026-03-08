@@ -183,9 +183,7 @@ export default function AdminProducts() {
             </option>
           ))}
         </select>
-        <Button onClick={openAdd} icon="➕">
-          Add Product
-        </Button>
+        <Button onClick={openAdd}>Add Product</Button>
       </div>
 
       {/* Count */}
@@ -284,7 +282,7 @@ export default function AdminProducts() {
             <p>No products found</p>
           </div>
         ) : (
-          /* ── Pagination ── */
+          /*  Pagination  */
           <div className="flex items-center justify-between px-5 py-4 border-t border-[#F5E6D3] bg-[#FFF8F0]">
             <p className="text-xs text-[#8B4513]/60">
               Page <span className="font-bold text-[#3C1810]">{safePage}</span>{" "}
@@ -360,16 +358,14 @@ export default function AdminProducts() {
         )}
       </div>
 
-      {/* ── Add / Edit Modal ── */}
+      {/*  Add / Edit Modal  */}
       <Modal
         isOpen={modal.open}
         onClose={() => setModal({ ...modal, open: false })}
-        title={modal.mode === "add" ? "➕ Add New Product" : "✏️ Edit Product"}
+        title={modal.mode === "add" ? "Add New Product" : " Edit Product"}
         size="lg"
       >
         <div className="space-y-4">
-          {/* No emoji picker — products will use image URLs */}
-
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="Product Name"
@@ -522,7 +518,7 @@ export default function AdminProducts() {
   );
 }
 
-/* ── Pagination button ── */
+/*  Pagination button  */
 function PagBtn({ children, onClick, disabled, active, title }) {
   return (
     <button

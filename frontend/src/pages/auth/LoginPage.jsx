@@ -101,7 +101,7 @@ export default function LoginPage() {
               Sign in to your account to continue.
             </p>
 
-            {/* Demo hint */}
+            {/* Demo */}
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               {errors.general && (
                 <div className="bg-red-50 border-2 border-red-200 rounded-2xl px-4 py-3 text-red-600 text-sm font-medium animate-slide-up">

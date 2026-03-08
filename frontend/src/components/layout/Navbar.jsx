@@ -40,7 +40,7 @@ export default function Navbar() {
                 : "text-[#3C1810] hover:bg-[#FFF8F0]"
             }`}
           >
-            🍽️ Menu
+            Menu
           </Link>
           {user?.role === "admin" && (
             <Link
@@ -51,7 +51,7 @@ export default function Navbar() {
                   : "text-[#3C1810] hover:bg-[#FFF8F0]"
               }`}
             >
-              ⚙️ Dashboard
+              Dashboard
             </Link>
           )}
         </div>

@@ -8,10 +8,10 @@ import AdminOrders from "../../components/admin/AdminOrders";
 import AdminReports from "../../components/admin/AdminReports";
 
 const TABS = [
-  { id: "overview", label: "Overview", icon: "📊" },
-  { id: "products", label: "Products", icon: "☕" },
-  { id: "orders", label: "Orders", icon: "📦" },
-  { id: "reports", label: "Reports", icon: "📈" },
+  { id: "overview", label: "Overview" },
+  { id: "products", label: "Products" },
+  { id: "orders", label: "Orders" },
+  { id: "reports", label: "Reports" },
 ];
 
 const STATUS_STYLES = {
@@ -113,9 +113,7 @@ function Overview({ onTabChange }) {
 
       <div className="bg-white rounded-3xl border-2 border-[#F5E6D3] overflow-hidden">
         <div className="flex items-center justify-between px-6 py-5 border-b border-[#F5E6D3]">
-          <h3 className="font-display text-xl text-[#3C1810]">
-            📦 Recent Orders
-          </h3>
+          <h3 className="font-display text-xl text-[#3C1810]">Recent Orders</h3>
           <span className="text-sm text-[#D4956A] font-semibold">
             {recentOrders.length} shown
           </span>
@@ -180,7 +178,7 @@ function Overview({ onTabChange }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="bg-white rounded-3xl border-2 border-[#F5E6D3] p-5">
           <h4 className="font-display text-lg text-[#3C1810] mb-4">
-            🏆 Top Sellers
+            Top Sellers
           </h4>
           {topProducts.length === 0 ? (
             <p className="text-[#8B4513]/40 text-sm">No sales data yet.</p>
@@ -191,7 +189,6 @@ function Overview({ onTabChange }) {
                   <span className="w-7 h-7 bg-[#F5E6D3] rounded-full flex items-center justify-center text-xs font-bold text-[#8B4513]">
                     {i + 1}
                   </span>
-                  <span className="text-xl">{p.emoji}</span>
                   <span className="text-sm font-semibold text-[#3C1810] flex-1 truncate">
                     {p.name}
                   </span>
@@ -205,7 +202,7 @@ function Overview({ onTabChange }) {
         </div>
         <div className="bg-white rounded-3xl border-2 border-[#F5E6D3] p-5">
           <h4 className="font-display text-lg text-[#3C1810] mb-4">
-            ⚡ Quick Actions
+            Quick Actions
           </h4>
           <div className="space-y-2">
             {[
@@ -263,7 +260,7 @@ export default function AdminDashboard() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="font-display text-3xl text-[#3C1810]">
-              👑 Admin Dashboard
+              Admin Dashboard
             </h1>
             <p className="text-[#8B4513]/60 mt-1">
               Welcome back, {user.name.split(" ")[0]}!
