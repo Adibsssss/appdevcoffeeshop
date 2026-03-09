@@ -61,13 +61,6 @@ npm install
 npm start
 ```
 
-## 🔑 Demo Accounts
-
-| Role     | Email                    | Password   |
-|----------|--------------------------|------------|
-| Admin    | admin@brewhaven.com      | admin123   |
-| Customer | jane@email.com           | password123|
-
 ## 🛠️ Tech Stack
 
 - **Frontend**: React 18 + React Router 6
