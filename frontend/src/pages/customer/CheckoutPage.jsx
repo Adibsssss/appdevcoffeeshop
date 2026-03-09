@@ -25,6 +25,21 @@ function OrderSummary({ items, totalPrice }) {
       <div className="space-y-3 mb-4">
         {items.map((item) => (
           <div key={item.id} className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#FFF8F0] rounded-xl flex items-center justify-center flex-shrink-0">
+              <svg
+                className="w-4 h-4 text-[#C4A882]"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 20.25h18A2.25 2.25 0 0023.25 18V6A2.25 2.25 0 0021 3.75H3A2.25 2.25 0 00.75 6v12A2.25 2.25 0 003 20.25z"
+                />
+              </svg>
+            </div>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-[#3C1810] text-sm truncate">
                 {item.name}
@@ -68,6 +83,8 @@ export default function CheckoutPage() {
     expiry: "",
     cvv: "",
   });
+  const [customerName, setCustomerName] = useState("");
+  const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [successModal, setSuccessModal] = useState(false);
@@ -102,9 +119,12 @@ export default function CheckoutPage() {
   };
 
   const validate = () => {
-    if (paymentMethod !== "card" && paymentMethod !== "cash") return {};
-    if (paymentMethod === "cash") return {};
     const e = {};
+    if (user?.role === "admin" && !customerName.trim()) {
+      e.customerName = "Customer name is required.";
+    }
+    if (paymentMethod !== "card" && paymentMethod !== "cash") return e;
+    if (paymentMethod === "cash") return e;
     if (!card.number || card.number.replace(/\s/g, "").length < 16)
       e.number = "Enter a valid 16-digit card number.";
     if (!card.name.trim()) e.name = "Cardholder name is required.";
@@ -126,7 +146,12 @@ export default function CheckoutPage() {
         product_id: i.id,
         quantity: i.quantity,
       }));
-      const result = await ordersAPI.place(apiItems, paymentMethod);
+      const result = await ordersAPI.place(
+        apiItems,
+        paymentMethod,
+        notes,
+        user?.role === "admin" ? customerName.trim() : ""
+      );
       setPlacedOrder(result.order);
       clearCart();
       setSuccessModal(true);
@@ -152,15 +177,66 @@ export default function CheckoutPage() {
               <h3 className="font-display text-xl text-[#3C1810] mb-4">
                 📋 Customer Details
               </h3>
-              <div className="flex items-center gap-4 bg-[#FFF8F0] rounded-2xl p-4">
-                <div className="w-12 h-12 rounded-2xl bg-[#F5E6D3] flex items-center justify-center text-2xl">
-                  👤
+              {user?.role === "admin" ? (
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-bold text-[#3C1810] block mb-1.5">
+                      Customer Name <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Juan dela Cruz"
+                      value={customerName}
+                      onChange={(e) => {
+                        setCustomerName(e.target.value);
+                        setErrors((ev) => ({ ...ev, customerName: "" }));
+                      }}
+                      className={`w-full bg-white border-2 ${
+                        errors.customerName
+                          ? "border-red-400"
+                          : "border-[#F5E6D3] focus:border-[#D4956A]"
+                      } rounded-2xl px-4 py-2.5 text-sm font-medium text-[#3C1810] placeholder:text-[#C4A882] focus:outline-none`}
+                    />
+                    {errors.customerName && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.customerName}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-sm font-bold text-[#3C1810] block mb-1.5">
+                      Notes{" "}
+                      <span className="text-[#C4A882] font-normal">
+                        (optional)
+                      </span>
+                    </label>
+                    <textarea
+                      placeholder="Special instructions..."
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      rows={2}
+                      className="w-full bg-white border-2 border-[#F5E6D3] focus:border-[#D4956A] rounded-2xl px-4 py-2.5 text-sm text-[#3C1810] placeholder:text-[#C4A882] focus:outline-none resize-none"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 bg-amber-50 rounded-2xl p-3 text-amber-700 text-xs font-medium">
+                    <span>👑</span>
+                    <span>
+                      Ordering as admin — order will be assigned to this
+                      customer name.
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-bold text-[#3C1810]">{user?.name}</p>
-                  <p className="text-sm text-[#8B4513]/60">{user?.email}</p>
+              ) : (
+                <div className="flex items-center gap-4 bg-[#FFF8F0] rounded-2xl p-4">
+                  <div className="w-12 h-12 rounded-2xl bg-[#F5E6D3] flex items-center justify-center text-2xl">
+                    👤
+                  </div>
+                  <div>
+                    <p className="font-bold text-[#3C1810]">{user?.name}</p>
+                    <p className="text-sm text-[#8B4513]/60">{user?.email}</p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Payment Method */}
@@ -344,7 +420,7 @@ export default function CheckoutPage() {
         isOpen={successModal}
         onClose={() => {
           setSuccessModal(false);
-          navigate("/menu");
+          navigate(user?.role === "admin" ? "/admin" : "/menu");
         }}
         size="md"
       >
@@ -354,7 +430,9 @@ export default function CheckoutPage() {
             Order Placed!
           </h2>
           <p className="text-[#8B4513]/70 mb-4">
-            Your order has been received and is being prepared.
+            {user?.role === "admin"
+              ? `Order for ${placedOrder?.customer_name} has been received.`
+              : "Your order has been received and is being prepared."}
           </p>
           <div className="bg-[#FFF8F0] rounded-2xl p-4 mb-6">
             <p className="text-sm text-[#8B4513]/60 mb-1">Order Reference</p>
@@ -372,16 +450,29 @@ export default function CheckoutPage() {
             >
               🍽️ Order More
             </Button>
-            <Button
-              variant="secondary"
-              fullWidth
-              onClick={() => {
-                setSuccessModal(false);
-                navigate("/");
-              }}
-            >
-              Back to Home
-            </Button>
+            {user?.role === "admin" ? (
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={() => {
+                  setSuccessModal(false);
+                  navigate("/admin?tab=orders");
+                }}
+              >
+                📦 View Orders
+              </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={() => {
+                  setSuccessModal(false);
+                  navigate("/");
+                }}
+              >
+                Back to Home
+              </Button>
+            )}
           </div>
         </div>
       </Modal>

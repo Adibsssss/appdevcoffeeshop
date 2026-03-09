@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { reportsAPI } from "../../utils/api";
+import { reportsAPI, ordersAPI } from "../../utils/api";
 
 function LineChart({ data, valueKey, labelKey, color = "#D4956A" }) {
   const [tooltip, setTooltip] = useState(null);
@@ -171,7 +171,7 @@ function LineChart({ data, valueKey, labelKey, color = "#D4956A" }) {
   );
 }
 
-//  CSV helpers
+// ── CSV helpers ───────────────────────────────────────────────────────────────
 function downloadCSV(filename, rows) {
   const csv = rows
     .map((r) =>
@@ -190,12 +190,12 @@ function formatDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
-//  Period config
+// ── Period config ─────────────────────────────────────────────────────────────
 const PERIODS = {
   daily: {
     label: "Daily",
-    chartTitle: "Orders — Last 7 Days",
-    revenueTitle: "Revenue — Last 7 Days",
+    chartTitle: "📦 Orders — Last 7 Days",
+    revenueTitle: "💰 Revenue — Last 7 Days",
     dataKey: "dailyData",
     labelKey: "day",
     ordersKey: "orders",
@@ -204,8 +204,8 @@ const PERIODS = {
   },
   weekly: {
     label: "Weekly",
-    chartTitle: "Orders — Last 4 Weeks",
-    revenueTitle: "Revenue — Last 4 Weeks",
+    chartTitle: "📦 Orders — Last 4 Weeks",
+    revenueTitle: "💰 Revenue — Last 4 Weeks",
     dataKey: "weeklyData",
     labelKey: "week",
     ordersKey: "orders",
@@ -214,8 +214,8 @@ const PERIODS = {
   },
   monthly: {
     label: "Monthly",
-    chartTitle: "Orders — Last 7 Months",
-    revenueTitle: "Revenue — Last 7 Months",
+    chartTitle: "📦 Orders — Last 7 Months",
+    revenueTitle: "💰 Revenue — Last 7 Months",
     dataKey: "monthlyData",
     labelKey: "month",
     ordersKey: "orders",
@@ -224,7 +224,7 @@ const PERIODS = {
   },
 };
 
-//
+// ─────────────────────────────────────────────────────────────────────────────
 export default function AdminReports() {
   const [period, setPeriod] = useState("daily");
   const [summary, setSummary] = useState(null);
@@ -260,7 +260,7 @@ export default function AdminReports() {
     load();
   }, []);
 
-  //  Derive active dataset from period
+  // ── Derive active dataset from period ────────────────────────────────────
   const dataMap = { dailyData, weeklyData, monthlyData };
   const cfg = PERIODS[period];
   const activeData = dataMap[cfg.dataKey] || [];
@@ -276,26 +276,86 @@ export default function AdminReports() {
   const avgOrder =
     periodOrders > 0 ? Math.round(periodRevenue / periodOrders) : 0;
 
-  //  Export handlers
+  // ── Shared: build product summary from a list of orders ──────────────────
+  const buildProductSummary = (orders) => {
+    const map = {};
+    orders.forEach((order) => {
+      (order.items || []).forEach((item) => {
+        const key = item.product_name || item.name;
+        if (!map[key]) map[key] = { name: key, qty: 0, revenue: 0, orders: 0 };
+        map[key].qty += item.quantity || 0;
+        map[key].revenue +=
+          item.subtotal || item.unit_price * item.quantity || 0;
+        map[key].orders += 1;
+      });
+    });
+    return Object.values(map).sort((a, b) => b.revenue - a.revenue);
+  };
+
+  // ── Export handlers ───────────────────────────────────────────────────────
   const exportDaily = async () => {
     setExporting("daily");
     try {
-      const data = await reportsAPI.daily(30);
-      const raw = Array.isArray(data) ? data : [];
-      downloadCSV(`brewhaven-daily-report-${formatDate()}.csv`, [
-        ["BrewHaven — Daily Revenue Report"],
+      const allOrders = await ordersAPI.adminOrders("completed");
+      const orders = Array.isArray(allOrders)
+        ? allOrders
+        : allOrders?.results || [];
+
+      // Today full day — compare using LOCAL date (not UTC) to avoid timezone shift
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(
+        today.getMonth() + 1
+      ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+      const toLocalDateStr = (dateStr) => {
+        const d = new Date(dateStr);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}-${String(d.getDate()).padStart(2, "0")}`;
+      };
+
+      const filtered = orders.filter(
+        (o) => toLocalDateStr(o.created_at) === todayStr
+      );
+
+      const totalRevenue = filtered.reduce(
+        (s, o) => s + Number(o.total_amount || 0),
+        0
+      );
+      const products = buildProductSummary(filtered);
+
+      downloadCSV(`brewhaven-daily-report-${todayStr}.csv`, [
+        ["BrewHaven — Daily Sales Report"],
+        [
+          `Date: ${today.toLocaleDateString("en-PH", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}`,
+        ],
         [`Generated: ${new Date().toLocaleString()}`],
         [],
-        ["Date", "Orders", "Revenue (₱)"],
-        ...raw.map((d) => [d.day, d.orders, d.revenue]),
+        ["SUMMARY"],
+        ["Total Orders", "Total Revenue (₱)"],
+        [filtered.length, totalRevenue.toFixed(2)],
         [],
-        [
-          "TOTAL",
-          raw.reduce((s, d) => s + d.orders, 0),
-          raw.reduce((s, d) => s + Number(d.revenue), 0).toFixed(2),
-        ],
+        ["ORDER TRANSACTIONS"],
+        ["Reference", "Customer", "Payment", "Total (₱)", "Time"],
+        ...filtered.map((o) => [
+          o.reference,
+          o.customer_name,
+          o.payment_method,
+          Number(o.total_amount).toFixed(2),
+          new Date(o.created_at).toLocaleTimeString("en-PH"),
+        ]),
+        [],
+        ["PRODUCTS SOLD TODAY"],
+        ["Product", "Qty Sold", "Revenue (₱)"],
+        ...products.map((p) => [p.name, p.qty, p.revenue.toFixed(2)]),
       ]);
-    } catch {
+    } catch (e) {
       alert("Failed to export daily report.");
     } finally {
       setExporting(null);
@@ -305,22 +365,92 @@ export default function AdminReports() {
   const exportWeekly = async () => {
     setExporting("weekly");
     try {
-      const data = await reportsAPI.weekly(8);
-      const raw = Array.isArray(data) ? data : [];
-      downloadCSV(`brewhaven-weekly-report-${formatDate()}.csv`, [
-        ["BrewHaven — Weekly Revenue Report"],
-        [`Generated: ${new Date().toLocaleString()}`],
-        [],
-        ["Week", "Orders", "Revenue (₱)"],
-        ...raw.map((d) => [d.week, d.orders, d.revenue]),
-        [],
+      const allOrders = await ordersAPI.adminOrders("completed");
+      const orders = Array.isArray(allOrders)
+        ? allOrders
+        : allOrders?.results || [];
+
+      // Current week: Monday 00:00 local → Sunday 23:59 local
+      const today = new Date();
+      const monday = new Date(today);
+      monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+      monday.setHours(0, 0, 0, 0);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
+
+      const filtered = orders.filter((o) => {
+        const d = new Date(o.created_at);
+        return d >= monday && d <= sunday;
+      });
+
+      // Group by day within the week
+      const byDay = {};
+      filtered.forEach((o) => {
+        const d = new Date(o.created_at);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}-${String(d.getDate()).padStart(2, "0")}`;
+        if (!byDay[key]) byDay[key] = [];
+        byDay[key].push(o);
+      });
+
+      const totalRevenue = filtered.reduce(
+        (s, o) => s + Number(o.total_amount || 0),
+        0
+      );
+      const products = buildProductSummary(filtered);
+      const fmtDate = (d) =>
+        d.toLocaleDateString("en-PH", { month: "short", day: "numeric" });
+      const weekLabel = `${fmtDate(monday)} – ${fmtDate(sunday)}`;
+
+      downloadCSV(
+        `brewhaven-weekly-report-${monday.toISOString().slice(0, 10)}.csv`,
         [
-          "TOTAL",
-          raw.reduce((s, d) => s + d.orders, 0),
-          raw.reduce((s, d) => s + Number(d.revenue), 0).toFixed(2),
-        ],
-      ]);
-    } catch {
+          ["BrewHaven — Weekly Sales Report"],
+          [`Week: ${weekLabel}`],
+          [`Generated: ${new Date().toLocaleString()}`],
+          [],
+          ["SUMMARY"],
+          ["Total Orders", "Total Revenue (₱)"],
+          [filtered.length, totalRevenue.toFixed(2)],
+          [],
+          ["DAILY BREAKDOWN"],
+          ["Date", "Orders", "Revenue (₱)"],
+          ...Object.entries(byDay)
+            .sort()
+            .map(([day, dayOrders]) => [
+              new Date(day).toLocaleDateString("en-PH", {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+              }),
+              dayOrders.length,
+              dayOrders
+                .reduce((s, o) => s + Number(o.total_amount || 0), 0)
+                .toFixed(2),
+            ]),
+          [],
+          ["ORDER TRANSACTIONS"],
+          ["Reference", "Customer", "Payment", "Total (₱)", "Date"],
+          ...filtered.map((o) => [
+            o.reference,
+            o.customer_name,
+            o.payment_method,
+            Number(o.total_amount).toFixed(2),
+            new Date(o.created_at).toLocaleDateString("en-PH", {
+              month: "short",
+              day: "numeric",
+            }),
+          ]),
+          [],
+          ["PRODUCTS SOLD THIS WEEK"],
+          ["Product", "Qty Sold", "Revenue (₱)"],
+          ...products.map((p) => [p.name, p.qty, p.revenue.toFixed(2)]),
+        ]
+      );
+    } catch (e) {
       alert("Failed to export weekly report.");
     } finally {
       setExporting(null);
@@ -330,22 +460,87 @@ export default function AdminReports() {
   const exportMonthly = async () => {
     setExporting("monthly");
     try {
-      const data = await reportsAPI.monthly(12);
-      const raw = Array.isArray(data) ? data : [];
-      downloadCSV(`brewhaven-monthly-report-${formatDate()}.csv`, [
-        ["BrewHaven — Monthly Revenue Report"],
+      const allOrders = await ordersAPI.adminOrders("completed");
+      const orders = Array.isArray(allOrders)
+        ? allOrders
+        : allOrders?.results || [];
+
+      // Current month only — using local month/year
+      const today = new Date();
+      const thisYear = today.getFullYear();
+      const thisMon = today.getMonth(); // 0-indexed
+
+      const filtered = orders.filter((o) => {
+        const d = new Date(o.created_at);
+        return d.getFullYear() === thisYear && d.getMonth() === thisMon;
+      });
+
+      const currentYM = `${thisYear}-${String(thisMon + 1).padStart(2, "0")}`;
+
+      // Group by day within the month
+      const byDay = {};
+      filtered.forEach((o) => {
+        const d = new Date(o.created_at);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}-${String(d.getDate()).padStart(2, "0")}`;
+        if (!byDay[key]) byDay[key] = [];
+        byDay[key].push(o);
+      });
+
+      const totalRevenue = filtered.reduce(
+        (s, o) => s + Number(o.total_amount || 0),
+        0
+      );
+      const products = buildProductSummary(filtered);
+      const monthLabel = today.toLocaleDateString("en-PH", {
+        month: "long",
+        year: "numeric",
+      });
+
+      downloadCSV(`brewhaven-monthly-report-${currentYM}.csv`, [
+        ["BrewHaven — Monthly Sales Report"],
+        [`Month: ${monthLabel}`],
         [`Generated: ${new Date().toLocaleString()}`],
         [],
-        ["Month", "Orders", "Revenue (₱)"],
-        ...raw.map((d) => [d.month, d.orders, d.revenue]),
+        ["SUMMARY"],
+        ["Total Orders", "Total Revenue (₱)"],
+        [filtered.length, totalRevenue.toFixed(2)],
         [],
-        [
-          "TOTAL",
-          raw.reduce((s, d) => s + d.orders, 0),
-          raw.reduce((s, d) => s + Number(d.revenue), 0).toFixed(2),
-        ],
+        ["DAILY BREAKDOWN"],
+        ["Date", "Orders", "Revenue (₱)"],
+        ...Object.entries(byDay)
+          .sort()
+          .map(([day, dayOrders]) => [
+            new Date(day).toLocaleDateString("en-PH", {
+              month: "short",
+              day: "numeric",
+            }),
+            dayOrders.length,
+            dayOrders
+              .reduce((s, o) => s + Number(o.total_amount || 0), 0)
+              .toFixed(2),
+          ]),
+        [],
+        ["ORDER TRANSACTIONS"],
+        ["Reference", "Customer", "Payment", "Total (₱)", "Date"],
+        ...filtered.map((o) => [
+          o.reference,
+          o.customer_name,
+          o.payment_method,
+          Number(o.total_amount).toFixed(2),
+          new Date(o.created_at).toLocaleDateString("en-PH", {
+            month: "short",
+            day: "numeric",
+          }),
+        ]),
+        [],
+        ["PRODUCTS SOLD THIS MONTH"],
+        ["Product", "Qty Sold", "Revenue (₱)"],
+        ...products.map((p) => [p.name, p.qty, p.revenue.toFixed(2)]),
       ]);
-    } catch {
+    } catch (e) {
       alert("Failed to export monthly report.");
     } finally {
       setExporting(null);
@@ -370,7 +565,7 @@ export default function AdminReports() {
 
   return (
     <div className="space-y-6">
-      {/*  Period selector  */}
+      {/* ── Period selector ── */}
       <div className="flex gap-2">
         {Object.entries(PERIODS).map(([key, val]) => (
           <button
@@ -387,22 +582,25 @@ export default function AdminReports() {
         ))}
       </div>
 
-      {/*  KPI cards — react to period  */}
+      {/* ── KPI cards — react to period ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         {[
           {
             label: "Revenue",
             value: `₱${periodRevenue.toLocaleString()}`,
+            icon: "💰",
             color: "text-green-600",
           },
           {
             label: cfg.statLabel,
             value: periodOrders,
+            icon: "📦",
             color: "text-blue-600",
           },
           {
             label: "Avg Order Value",
             value: `₱${avgOrder.toLocaleString()}`,
+            icon: "📊",
             color: "text-purple-600",
           },
         ].map((card) => (
@@ -419,7 +617,7 @@ export default function AdminReports() {
         ))}
       </div>
 
-      {/*  Charts — react to period  */}
+      {/* ── Charts — react to period ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-3xl border-2 border-[#F5E6D3] p-6">
           <h3 className="font-display text-lg text-[#3C1810] mb-1">
@@ -451,11 +649,11 @@ export default function AdminReports() {
         </div>
       </div>
 
-      {/*  Top products  */}
+      {/* ── Top products ── */}
       <div className="bg-white rounded-3xl border-2 border-[#F5E6D3] p-6">
         <div className="flex items-center justify-between mb-5">
           <h3 className="font-display text-xl text-[#3C1810]">
-            Top Performing Products
+            🏆 Top Performing Products
           </h3>
           <span className="text-xs text-[#8B4513]/50 font-medium">
             By revenue
@@ -512,10 +710,10 @@ export default function AdminReports() {
         )}
       </div>
 
-      {/*  Export  */}
+      {/* ── Export ── */}
       <div className="bg-white rounded-3xl border-2 border-[#F5E6D3] p-5">
         <h4 className="font-display text-lg text-[#3C1810] mb-1">
-          Export Reports
+          📄 Export Reports
         </h4>
         <p className="text-xs text-[#8B4513]/50 mb-4">
           Downloads a CSV file to your computer.
@@ -557,6 +755,7 @@ export default function AdminReports() {
                 </>
               ) : (
                 <>
+                  <span>📄</span>
                   <span>Export {label}</span>
                   <span className="text-[#C4A882] text-xs font-normal">
                     CSV

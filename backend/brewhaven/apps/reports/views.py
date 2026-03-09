@@ -6,6 +6,18 @@ from brewhaven.mongo import get_collection, get_db
 from brewhaven.apps.products.permissions import IsAdmin
 
 
+def _fmt_day(dt):
+    """Format date as 'Mar 8' — cross-platform (works on Windows and Linux)."""
+    return dt.strftime("%b") + " " + str(dt.day)
+
+
+def _fmt_week(monday, sunday):
+    """Format week range as 'Mar 3–9' or 'Feb 24–Mar 2' if it spans months."""
+    if monday.month == sunday.month:
+        return f"{monday.strftime('%b')} {monday.day}–{sunday.day}"
+    return f"{monday.strftime('%b')} {monday.day}–{sunday.strftime('%b')} {sunday.day}"
+
+
 
 def _users_col():
     return get_collection("users")
@@ -94,7 +106,7 @@ class DailyReportView(APIView):
         for r in results:
             d = datetime(r["_id"]["year"], r["_id"]["month"], r["_id"]["day"])
             data.append({
-                "day":     d.strftime("%a"),
+                "day":     _fmt_day(d),            # e.g. "Mar 8"
                 "date":    d.strftime("%Y-%m-%d"),
                 "revenue": round(r["revenue"], 2),
                 "orders":  r["orders"],
@@ -114,23 +126,33 @@ class WeeklyReportView(APIView):
             {"$match": {"status": "completed", "created_at": {"$gte": since}}},
             {"$group": {
                 "_id": {
-                    "year": {"$year": "$created_at"},
-                    "week": {"$week": "$created_at"},
+                    "year": {"$isoWeekYear": "$created_at"},
+                    "week": {"$isoWeek":     "$created_at"},
                 },
-                "revenue": {"$sum": "$total_amount"},
-                "orders":  {"$sum": 1},
+                "revenue":   {"$sum": "$total_amount"},
+                "orders":    {"$sum": 1},
+                "min_date":  {"$min": "$created_at"},
             }},
             {"$sort": {"_id": 1}},
         ]
         results = list(_orders().aggregate(pipeline))
-        return Response([
-            {
-                "week":    f"Wk {r['_id']['week']}",
+
+        data = []
+        for r in results:
+            # Use the earliest order date in the week to anchor Mon–Sun range
+            anchor     = r["min_date"]
+            # Find Monday of that ISO week
+            monday     = anchor - timedelta(days=anchor.weekday())
+            sunday     = monday + timedelta(days=6)
+            week_label = _fmt_week(monday, sunday)
+            data.append({
+                "week":    week_label,          # e.g. "Mar 3–9"
+                "start":   monday.strftime("%Y-%m-%d"),
+                "end":     sunday.strftime("%Y-%m-%d"),
                 "revenue": round(r["revenue"], 2),
                 "orders":  r["orders"],
-            }
-            for r in results
-        ])
+            })
+        return Response(data)
 
 
 class MonthlyReportView(APIView):
@@ -157,7 +179,7 @@ class MonthlyReportView(APIView):
         results = list(_orders().aggregate(pipeline))
         return Response([
             {
-                "month":   MONTHS[r["_id"]["month"] - 1],
+                "month":   f"{MONTHS[r['_id']['month'] - 1]} {r['_id']['year']}",  # e.g. "Mar 2026"
                 "date":    f"{r['_id']['year']}-{r['_id']['month']:02d}",
                 "revenue": round(r["revenue"], 2),
                 "orders":  r["orders"],

@@ -259,14 +259,14 @@ export default function AdminProducts() {
                         className="p-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 text-sm transition-all"
                         title="Edit"
                       >
-                        ✏️
+                        Edit
                       </button>
                       <button
                         onClick={() => setDeleteConfirm(product)}
                         className="p-2 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 text-sm transition-all"
                         title="Delete"
                       >
-                        🗑️
+                        Delete
                       </button>
                     </div>
                   </td>

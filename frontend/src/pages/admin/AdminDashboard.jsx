@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Navigate, Link } from "react-router-dom";
+import { Navigate, Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { reportsAPI, ordersAPI } from "../../utils/api";
 import Layout from "../../components/layout/Layout";
@@ -8,10 +8,10 @@ import AdminOrders from "../../components/admin/AdminOrders";
 import AdminReports from "../../components/admin/AdminReports";
 
 const TABS = [
-  { id: "overview", label: "Overview" },
-  { id: "products", label: "Products" },
-  { id: "orders", label: "Orders" },
-  { id: "reports", label: "Reports" },
+  { id: "overview", label: "Overview", icon: "📊" },
+  { id: "products", label: "Products", icon: "☕" },
+  { id: "orders", label: "Orders", icon: "📦" },
+  { id: "reports", label: "Reports", icon: "📈" },
 ];
 
 const STATUS_STYLES = {
@@ -64,25 +64,21 @@ function Overview({ onTabChange }) {
         {
           label: "Total Products",
           value: summary.total.products,
-          icon: "☕",
           color: "from-amber-400 to-orange-500",
         },
         {
           label: "Today's Orders",
           value: summary.today.orders,
-          icon: "📦",
           color: "from-blue-400 to-indigo-500",
         },
         {
           label: "Revenue Today",
           value: `₱${Number(summary.today.revenue).toLocaleString()}`,
-          icon: "💰",
           color: "from-green-400 to-emerald-500",
         },
         {
           label: "Total Customers",
           value: summary.total.customers,
-          icon: "👥",
           color: "from-pink-400 to-rose-500",
         },
       ]
@@ -200,49 +196,6 @@ function Overview({ onTabChange }) {
             </ul>
           )}
         </div>
-        <div className="bg-white rounded-3xl border-2 border-[#F5E6D3] p-5">
-          <h4 className="font-display text-lg text-[#3C1810] mb-4">
-            Quick Actions
-          </h4>
-          <div className="space-y-2">
-            {[
-              {
-                label: "Manage Products",
-                icon: "☕",
-                color: "bg-amber-50 text-amber-700 hover:bg-amber-100",
-                tab: "products",
-              },
-              {
-                label: "View All Orders",
-                icon: "📦",
-                color: "bg-blue-50 text-blue-700 hover:bg-blue-100",
-                tab: "orders",
-              },
-              {
-                label: "Generate Report",
-                icon: "📈",
-                color: "bg-purple-50 text-purple-700 hover:bg-purple-100",
-                tab: "reports",
-              },
-            ].map((a) => (
-              <button
-                key={a.label}
-                onClick={() => onTabChange(a.tab)}
-                className={`w-full flex items-center gap-3 p-3 rounded-2xl font-semibold text-sm transition-all ${a.color}`}
-              >
-                <span>{a.icon}</span>
-                <span>{a.label}</span>
-              </button>
-            ))}
-            <Link
-              to="/menu"
-              className="w-full flex items-center gap-3 p-3 rounded-2xl font-semibold text-sm bg-green-50 text-green-700 hover:bg-green-100 transition-all"
-            >
-              <span>🍽️</span>
-              <span>View Live Menu</span>
-            </Link>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -250,7 +203,15 @@ function Overview({ onTabChange }) {
 
 export default function AdminDashboard() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(
+    searchParams.get("tab") || "overview"
+  );
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab) setActiveTab(tab);
+  }, [searchParams]);
 
   if (!user || user.role !== "admin") return <Navigate to="/login" replace />;
 

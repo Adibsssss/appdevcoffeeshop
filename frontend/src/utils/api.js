@@ -6,14 +6,14 @@
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
 
-// ── Token helpers ────────────────────────────────────────────────────────────
+//  Token helpers
 export const getTokens = () => ({
-  access:  sessionStorage.getItem("bh_access"),
+  access: sessionStorage.getItem("bh_access"),
   refresh: sessionStorage.getItem("bh_refresh"),
 });
 
 export const setTokens = (access, refresh) => {
-  sessionStorage.setItem("bh_access",  access);
+  sessionStorage.setItem("bh_access", access);
   sessionStorage.setItem("bh_refresh", refresh);
 };
 
@@ -23,7 +23,7 @@ export const clearTokens = () => {
   sessionStorage.removeItem("brewhaven_user");
 };
 
-// ── Core fetch wrapper ───────────────────────────────────────────────────────
+//  Core fetch wrapper
 async function request(path, options = {}, retry = true) {
   const { access, refresh } = getTokens();
   const headers = {
@@ -74,78 +74,73 @@ async function request(path, options = {}, retry = true) {
   return data;
 }
 
-// ── Convenience methods ──────────────────────────────────────────────────────
+//  Convenience methods
 export const api = {
-  get:    (path, opts)         => request(path, { method: "GET",    ...opts }),
-  post:   (path, body, opts)   => request(path, { method: "POST",   body, ...opts }),
-  patch:  (path, body, opts)   => request(path, { method: "PATCH",  body, ...opts }),
-  put:    (path, body, opts)   => request(path, { method: "PUT",    body, ...opts }),
-  delete: (path, opts)         => request(path, { method: "DELETE", ...opts }),
+  get: (path, opts) => request(path, { method: "GET", ...opts }),
+  post: (path, body, opts) => request(path, { method: "POST", body, ...opts }),
+  patch: (path, body, opts) =>
+    request(path, { method: "PATCH", body, ...opts }),
+  put: (path, body, opts) => request(path, { method: "PUT", body, ...opts }),
+  delete: (path, opts) => request(path, { method: "DELETE", ...opts }),
 };
 
-// ── Auth endpoints ───────────────────────────────────────────────────────────
+//  Auth endpoints
 export const authAPI = {
   register: (name, email, password, password2) =>
     api.post("/auth/register/", { name, email, password, password2 }),
 
-  login: (email, password) =>
-    api.post("/auth/login/", { email, password }),
+  login: (email, password) => api.post("/auth/login/", { email, password }),
 
-  logout: (refresh) =>
-    api.post("/auth/logout/", { refresh }),
+  logout: (refresh) => api.post("/auth/logout/", { refresh }),
 
-  profile: () =>
-    api.get("/auth/profile/"),
+  profile: () => api.get("/auth/profile/"),
 };
 
-// ── Products endpoints ───────────────────────────────────────────────────────
+//  Products endpoints
 export const productsAPI = {
   list: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
     return api.get(`/products/${qs ? "?" + qs : ""}`);
   },
 
-  get: (id) =>
-    api.get(`/products/${id}/`),
+  get: (id) => api.get(`/products/${id}/`),
 
-  create: (data) =>
-    api.post("/products/", data),
+  create: (data) => api.post("/products/", data),
 
-  update: (id, data) =>
-    api.patch(`/products/${id}/`, data),
+  update: (id, data) => api.patch(`/products/${id}/`, data),
 
-  delete: (id) =>
-    api.delete(`/products/${id}/`),
+  delete: (id) => api.delete(`/products/${id}/`),
 
-  toggle: (id) =>
-    api.patch(`/products/${id}/toggle/`),
+  toggle: (id) => api.patch(`/products/${id}/toggle/`),
 };
 
-// ── Orders endpoints ─────────────────────────────────────────────────────────
+//  Orders endpoints
 export const ordersAPI = {
-  place: (items, paymentMethod, notes = "") =>
-    api.post("/orders/", { items, payment_method: paymentMethod, notes }),
+  place: (items, paymentMethod, notes = "", customerName = "") =>
+    api.post("/orders/", {
+      items,
+      payment_method: paymentMethod,
+      notes,
+      ...(customerName ? { customer_name: customerName } : {}),
+    }),
 
-  myOrders: () =>
-    api.get("/orders/my/"),
+  myOrders: () => api.get("/orders/my/"),
 
   adminOrders: (status) => {
     const qs = status ? `?status=${status}` : "";
     return api.get(`/orders/admin/${qs}`);
   },
 
-  detail: (id) =>
-    api.get(`/orders/${id}/`),
+  detail: (id) => api.get(`/orders/${id}/`),
 
-  updateStatus: (id, status) =>
-    api.patch(`/orders/${id}/status/`, { status }),
+  updateStatus: (id, status) => api.patch(`/orders/${id}/status/`, { status }),
 };
 
-// ── Reports endpoints ────────────────────────────────────────────────────────
+//  Reports endpoints
 export const reportsAPI = {
-  summary:     ()            => api.get("/reports/summary/"),
-  daily:       (days = 7)    => api.get(`/reports/daily/?days=${days}`),
-  weekly:      (weeks = 8)   => api.get(`/reports/weekly/?weeks=${weeks}`),
-  monthly:     (months = 12) => api.get(`/reports/monthly/?months=${months}`),
-  topProducts: (limit = 5)   => api.get(`/reports/top-products/?limit=${limit}`),
+  summary: () => api.get("/reports/summary/"),
+  daily: (days = 7) => api.get(`/reports/daily/?days=${days}`),
+  weekly: (weeks = 8) => api.get(`/reports/weekly/?weeks=${weeks}`),
+  monthly: (months = 12) => api.get(`/reports/monthly/?months=${months}`),
+  topProducts: (limit = 5) => api.get(`/reports/top-products/?limit=${limit}`),
 };

@@ -58,8 +58,8 @@ export default function Navbar() {
 
         {/* Right Side */}
         <div className="flex items-center gap-2">
-          {/* Cart Button - only for customers */}
-          {user?.role !== "admin" && (
+          {/* Cart button — all logged-in users */}
+          {user && (
             <button
               onClick={() => setIsOpen(true)}
               className="relative p-2.5 rounded-2xl bg-[#F5E6D3] hover:bg-[#D4956A] hover:text-white text-[#8B4513] transition-all group"
@@ -77,9 +77,7 @@ export default function Navbar() {
           {user ? (
             <div className="flex items-center gap-2">
               <div className="hidden md:flex items-center gap-2 bg-[#F5E6D3] px-3 py-2 rounded-2xl">
-                <span className="text-lg">
-                  {user.role === "admin" ? "👑" : "👤"}
-                </span>
+                <span className="text-lg">{user.role === "admin"}</span>
                 <span className="text-sm font-semibold text-[#3C1810]">
                   {user.name.split(" ")[0]}
                 </span>
@@ -118,7 +116,7 @@ export default function Navbar() {
             onClick={() => setMenuOpen(false)}
             className="px-4 py-3 rounded-xl font-semibold text-[#3C1810] hover:bg-[#F5E6D3]"
           >
-            🍽️ Menu
+            Menu
           </Link>
           {user?.role === "admin" && (
             <Link
@@ -126,7 +124,7 @@ export default function Navbar() {
               onClick={() => setMenuOpen(false)}
               className="px-4 py-3 rounded-xl font-semibold text-[#3C1810] hover:bg-[#F5E6D3]"
             >
-              ⚙️ Dashboard
+              Dashboard
             </Link>
           )}
         </div>

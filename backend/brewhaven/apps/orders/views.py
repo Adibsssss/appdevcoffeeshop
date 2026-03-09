@@ -63,11 +63,16 @@ class PlaceOrderView(APIView):
                 "subtotal":      subtotal,
             })
 
+        # Admin can pass a custom customer_name (walk-in / counter order)
+        is_admin        = getattr(request.user, "role", None) == "admin"
+        override_name   = request.data.get("customer_name", "").strip()
+        customer_name   = override_name if (is_admin and override_name) else request.user.name
+
         now   = datetime.now(timezone.utc)
         order = {
             "reference":      _ref(),
             "customer_id":    request.user.id,
-            "customer_name":  request.user.name,
+            "customer_name":  customer_name,
             "customer_email": request.user.email,
             "status":         "pending",
             "payment_method": data["payment_method"],

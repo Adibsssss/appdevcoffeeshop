@@ -35,7 +35,65 @@ const STATUS_CONFIG = {
   },
 };
 
-const PAYMENT_ICONS = { card: "💳", gcash: "📱", maya: "🟣", cash: "💵" };
+const PAYMENT_LABELS = {
+  card: "Card",
+  gcash: "GCash",
+  maya: "Maya",
+  cash: "Cash",
+};
+const PAGE_SIZE = 10;
+
+function Pagination({ page, totalPages, onChange }) {
+  if (totalPages <= 1) return null;
+  const pages = [];
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || (i >= page - 1 && i <= page + 1)) {
+      pages.push(i);
+    } else if (pages[pages.length - 1] !== "…") {
+      pages.push("…");
+    }
+  }
+  return (
+    <div className="flex items-center justify-center gap-1 px-6 py-4 border-t border-[#F5E6D3]">
+      <button
+        onClick={() => onChange(page - 1)}
+        disabled={page === 1}
+        className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold text-[#8B4513] hover:bg-[#F5E6D3] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+      >
+        ‹
+      </button>
+      {pages.map((p, i) =>
+        p === "…" ? (
+          <span
+            key={`e-${i}`}
+            className="w-8 h-8 flex items-center justify-center text-[#C4A882] text-sm"
+          >
+            …
+          </span>
+        ) : (
+          <button
+            key={p}
+            onClick={() => onChange(p)}
+            className={`w-8 h-8 rounded-xl text-sm font-bold transition-all ${
+              p === page
+                ? "bg-[#D4956A] text-white shadow-sm"
+                : "text-[#8B4513] hover:bg-[#F5E6D3]"
+            }`}
+          >
+            {p}
+          </button>
+        )
+      )}
+      <button
+        onClick={() => onChange(page + 1)}
+        disabled={page === totalPages}
+        className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold text-[#8B4513] hover:bg-[#F5E6D3] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+      >
+        ›
+      </button>
+    </div>
+  );
+}
 
 export default function AdminOrders() {
   const { addToast } = useToast();
@@ -44,6 +102,7 @@ export default function AdminOrders() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [selectedOrder, setSelected] = useState(null);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
   const load = async () => {
     try {
@@ -51,7 +110,7 @@ export default function AdminOrders() {
       const status = filterStatus === "all" ? undefined : filterStatus;
       const data = await ordersAPI.adminOrders(status);
       setOrders(Array.isArray(data) ? data : data.results || []);
-    } catch (e) {
+    } catch {
       addToast("Failed to load orders.", "error");
     } finally {
       setLoading(false);
@@ -61,6 +120,9 @@ export default function AdminOrders() {
   useEffect(() => {
     load();
   }, [filterStatus]);
+  useEffect(() => {
+    setPage(1);
+  }, [filterStatus, search]);
 
   const updateStatus = async (id, status) => {
     try {
@@ -74,13 +136,17 @@ export default function AdminOrders() {
     }
   };
 
-  const filtered = orders.filter((o) => {
-    return (
+  const filtered = orders.filter(
+    (o) =>
       !search ||
       (o.customer_name || "").toLowerCase().includes(search.toLowerCase()) ||
       o.reference.toLowerCase().includes(search.toLowerCase())
-    );
-  });
+  );
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const start = filtered.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const end = Math.min(page * PAGE_SIZE, filtered.length);
 
   return (
     <div>
@@ -138,9 +204,11 @@ export default function AdminOrders() {
             }`}
           >
             <div className="px-6 py-4 border-b border-[#F5E6D3] flex justify-between items-center">
-              <h3 className="font-display text-lg text-[#3C1810]">Orders</h3>
+              <h3 className="font-display text-lg text-[#3C1810]"> Orders</h3>
               <span className="text-sm text-[#D4956A] font-semibold">
-                {filtered.length} records
+                {filtered.length === 0
+                  ? "0 records"
+                  : `${start}–${end} of ${filtered.length}`}
               </span>
             </div>
             <div className="overflow-x-auto">
@@ -156,7 +224,7 @@ export default function AdminOrders() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.length === 0 ? (
+                  {paginated.length === 0 ? (
                     <tr>
                       <td
                         colSpan={6}
@@ -166,7 +234,7 @@ export default function AdminOrders() {
                       </td>
                     </tr>
                   ) : (
-                    filtered.map((order) => {
+                    paginated.map((order) => {
                       const cfg =
                         STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
                       return (
@@ -196,10 +264,9 @@ export default function AdminOrders() {
                               {cfg.label}
                             </span>
                           </td>
-                          <td className="px-5 py-4 hidden sm:table-cell">
-                            <span className="text-lg">
-                              {PAYMENT_ICONS[order.payment_method] || "💵"}
-                            </span>
+                          <td className="px-5 py-4 hidden sm:table-cell text-sm font-medium text-[#3C1810]">
+                            {PAYMENT_LABELS[order.payment_method] ||
+                              order.payment_method}
                           </td>
                           <td className="px-5 py-4">
                             <select
@@ -225,11 +292,19 @@ export default function AdminOrders() {
                 </tbody>
               </table>
             </div>
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onChange={setPage}
+            />
           </div>
 
           {/* Detail panel */}
           {selectedOrder && (
-            <div className="w-full lg:w-80 flex-shrink-0 bg-white rounded-3xl border-2 border-[#F5E6D3] p-6 animate-slide-up self-start">
+            <div
+              className="w-full lg:w-80 flex-shrink-0 bg-white rounded-3xl border-2 border-[#F5E6D3] p-6 animate-slide-up self-start overflow-y-auto"
+              style={{ maxHeight: "calc(100vh - 180px)" }}
+            >
               <div className="flex justify-between items-center mb-5">
                 <h3 className="font-display text-xl text-[#3C1810]">
                   Order Details
@@ -241,11 +316,15 @@ export default function AdminOrders() {
                   ✕
                 </button>
               </div>
+
+              {/* Reference */}
               <div className="bg-[#FFF8F0] rounded-2xl p-3 mb-4">
                 <p className="font-mono text-lg font-bold text-[#D4956A]">
                   {selectedOrder.reference}
                 </p>
               </div>
+
+              {/* Customer info */}
               <div className="space-y-2 mb-4 text-sm">
                 <div className="flex gap-2">
                   <span className="text-[#8B4513]/50 w-16 flex-shrink-0">
@@ -268,8 +347,8 @@ export default function AdminOrders() {
                     Payment
                   </span>
                   <span className="font-medium text-[#3C1810]">
-                    {PAYMENT_ICONS[selectedOrder.payment_method]}{" "}
-                    {selectedOrder.payment_method}
+                    {PAYMENT_LABELS[selectedOrder.payment_method] ||
+                      selectedOrder.payment_method}
                   </span>
                 </div>
                 <div className="flex gap-2">
@@ -281,6 +360,40 @@ export default function AdminOrders() {
                   </span>
                 </div>
               </div>
+
+              {/* Items ordered */}
+              {selectedOrder.items?.length > 0 && (
+                <div className="border-t border-[#F5E6D3] pt-4 mb-4">
+                  <p className="text-xs font-bold text-[#8B4513]/50 uppercase tracking-wide mb-3">
+                    Items Ordered
+                  </p>
+                  <div className="space-y-2">
+                    {selectedOrder.items.map((item, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between gap-2"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="w-5 h-5 rounded-full bg-[#F5E6D3] flex items-center justify-center text-xs font-bold text-[#8B4513] flex-shrink-0">
+                            {item.quantity}
+                          </span>
+                          <span className="text-sm text-[#3C1810] font-medium truncate">
+                            {item.product_name || item.name}
+                          </span>
+                        </div>
+                        <span className="text-sm font-bold text-[#D4956A] flex-shrink-0">
+                          ₱
+                          {Number(
+                            item.subtotal ?? item.unit_price * item.quantity
+                          ).toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Update status */}
               <div className="border-t border-[#F5E6D3] pt-4">
                 <p className="text-xs font-bold text-[#8B4513]/50 uppercase tracking-wide mb-2">
                   Update Status
