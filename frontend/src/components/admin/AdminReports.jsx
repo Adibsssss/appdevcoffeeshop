@@ -204,8 +204,8 @@ const PERIODS = {
   },
   weekly: {
     label: "Weekly",
-    chartTitle: "📦 Orders — Last 4 Weeks",
-    revenueTitle: "💰 Revenue — Last 4 Weeks",
+    chartTitle: " Orders — Last 4 Weeks",
+    revenueTitle: " Revenue — Last 4 Weeks",
     dataKey: "weeklyData",
     labelKey: "week",
     ordersKey: "orders",
@@ -214,8 +214,8 @@ const PERIODS = {
   },
   monthly: {
     label: "Monthly",
-    chartTitle: "📦 Orders — Last 7 Months",
-    revenueTitle: "💰 Revenue — Last 7 Months",
+    chartTitle: " Orders — Last 7 Months",
+    revenueTitle: " Revenue — Last 7 Months",
     dataKey: "monthlyData",
     labelKey: "month",
     ordersKey: "orders",
@@ -588,19 +588,16 @@ export default function AdminReports() {
           {
             label: "Revenue",
             value: `₱${periodRevenue.toLocaleString()}`,
-            icon: "💰",
             color: "text-green-600",
           },
           {
             label: cfg.statLabel,
             value: periodOrders,
-            icon: "📦",
             color: "text-blue-600",
           },
           {
             label: "Avg Order Value",
             value: `₱${avgOrder.toLocaleString()}`,
-            icon: "📊",
             color: "text-purple-600",
           },
         ].map((card) => (
