@@ -80,7 +80,11 @@ class LoginView(APIView):
         data  = serializer.validated_data
         email = data["email"].lower().strip()
 
-        doc = _users().find_one({"email": email})
+        try:
+            doc = _users().find_one({"email": email})
+        except Exception as e:
+            return Response({"error": f"Database error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         if not doc:
             return Response({"error": "Invalid email or password."}, status=status.HTTP_401_UNAUTHORIZED)
 
