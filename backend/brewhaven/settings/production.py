@@ -9,7 +9,7 @@ ALLOWED_HOSTS = config(
 )
 
 CORS_ALLOWED_ORIGINS = config(
-    "CORS_ALLOWED_ORIGINS", default="http://localhost:5173",
+    "CORS_ALLOWED_ORIGINS", default="https://appdevcoffeeshop.vercel.app/",
     cast=lambda v: [s.strip() for s in v.split(",")]
 )
 CORS_ALLOW_CREDENTIALS = True
