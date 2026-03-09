@@ -194,8 +194,8 @@ function formatDate() {
 const PERIODS = {
   daily: {
     label: "Daily",
-    chartTitle: "📦 Orders — Last 7 Days",
-    revenueTitle: "💰 Revenue — Last 7 Days",
+    chartTitle: " Orders — Last 7 Days",
+    revenueTitle: " Revenue — Last 7 Days",
     dataKey: "dailyData",
     labelKey: "day",
     ordersKey: "orders",
@@ -653,7 +653,7 @@ export default function AdminReports() {
       <div className="bg-white rounded-3xl border-2 border-[#F5E6D3] p-6">
         <div className="flex items-center justify-between mb-5">
           <h3 className="font-display text-xl text-[#3C1810]">
-            🏆 Top Performing Products
+            Top Performing Products
           </h3>
           <span className="text-xs text-[#8B4513]/50 font-medium">
             By revenue
@@ -713,7 +713,7 @@ export default function AdminReports() {
       {/* ── Export ── */}
       <div className="bg-white rounded-3xl border-2 border-[#F5E6D3] p-5">
         <h4 className="font-display text-lg text-[#3C1810] mb-1">
-          📄 Export Reports
+          Export Reports
         </h4>
         <p className="text-xs text-[#8B4513]/50 mb-4">
           Downloads a CSV file to your computer.
@@ -755,7 +755,6 @@ export default function AdminReports() {
                 </>
               ) : (
                 <>
-                  <span>📄</span>
                   <span>Export {label}</span>
                   <span className="text-[#C4A882] text-xs font-normal">
                     CSV
