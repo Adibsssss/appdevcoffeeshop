@@ -10,7 +10,12 @@ export default function RegisterPage() {
   const { addToast } = useToast();
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirm: "",
+  });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
@@ -27,21 +32,34 @@ export default function RegisterPage() {
     if (!form.email) e.email = "Email is required.";
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Enter a valid email.";
     if (!form.password) e.password = "Password is required.";
-    else if (form.password.length < 6) e.password = "At least 6 characters required.";
+    else if (form.password.length < 6)
+      e.password = "At least 6 characters required.";
     if (!form.confirm) e.confirm = "Please confirm your password.";
-    else if (form.confirm !== form.password) e.confirm = "Passwords do not match.";
+    else if (form.confirm !== form.password)
+      e.confirm = "Passwords do not match.";
     return e;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const v = validate();
-    if (Object.keys(v).length) { setErrors(v); return; }
+    if (Object.keys(v).length) {
+      setErrors(v);
+      return;
+    }
     setLoading(true);
-    const result = await register(form.name.trim(), form.email, form.password, form.confirm);
+    const result = await register(
+      form.name.trim(),
+      form.email,
+      form.password,
+      form.confirm
+    );
     setLoading(false);
     if (result.success) {
-      addToast(`Account created! Welcome, ${result.user.name.split(" ")[0]}! 🎉`, "success");
+      addToast(
+        `Account created! Welcome, ${result.user.name.split(" ")[0]}! 🎉`,
+        "success"
+      );
       navigate("/menu");
     } else {
       setErrors({ general: result.error });
@@ -60,8 +78,17 @@ export default function RegisterPage() {
     return s;
   })();
 
-  const strengthLabel = ["", "Weak", "Fair", "Good", "Strong", "Very Strong"][strength];
-  const strengthColor = ["", "bg-red-400", "bg-orange-400", "bg-yellow-400", "bg-green-400", "bg-emerald-500"][strength];
+  const strengthLabel = ["", "Weak", "Fair", "Good", "Strong", "Very Strong"][
+    strength
+  ];
+  const strengthColor = [
+    "",
+    "bg-red-400",
+    "bg-orange-400",
+    "bg-yellow-400",
+    "bg-green-400",
+    "bg-emerald-500",
+  ][strength];
 
   return (
     <div className="min-h-screen bg-[#FFF8F0] flex">
@@ -84,10 +111,18 @@ export default function RegisterPage() {
           ))}
         </div>
         <div className="relative text-center px-12">
-          <div className="text-8xl mb-6 animate-float" style={{ animationDelay: "0.5s" }}>🌟</div>
-          <h2 className="font-display text-4xl text-white mb-4">Join the Family!</h2>
+          <div
+            className="text-8xl mb-6 animate-float"
+            style={{ animationDelay: "0.5s" }}
+          >
+            🌟
+          </div>
+          <h2 className="font-display text-4xl text-white mb-4">
+            Join the Family!
+          </h2>
           <p className="text-white/80 text-lg leading-relaxed">
-            Create your account and unlock exclusive deals, order history, and a personalized experience.
+            Create your account and unlock exclusive deals, order history, and a
+            personalized experience.
           </p>
           <div className="mt-8 grid grid-cols-2 gap-3">
             {[
@@ -96,8 +131,12 @@ export default function RegisterPage() {
               { icon: "⚡", label: "Fast Checkout" },
               { icon: "💌", label: "Special Offers" },
             ].map((perk) => (
-              <div key={perk.label} className="bg-white/10 rounded-2xl p-3 text-white/80 text-sm font-medium flex items-center gap-2">
-                <span>{perk.icon}</span>{perk.label}
+              <div
+                key={perk.label}
+                className="bg-white/10 rounded-2xl p-3 text-white/80 text-sm font-medium flex items-center gap-2"
+              >
+                <span>{perk.icon}</span>
+                {perk.label}
               </div>
             ))}
           </div>
@@ -109,12 +148,18 @@ export default function RegisterPage() {
         <div className="w-full max-w-md animate-pop-in">
           <div className="lg:hidden text-center mb-8">
             <span className="text-5xl">☕</span>
-            <h1 className="font-accent text-3xl text-[#3C1810] mt-2">BrewHaven</h1>
+            <h1 className="font-accent text-3xl text-[#3C1810] mt-2">
+              BrewHaven
+            </h1>
           </div>
 
           <div className="bg-white rounded-3xl p-8 shadow-lg border-2 border-[#F5E6D3]">
-            <h2 className="font-display text-3xl text-[#3C1810] mb-1">Create Account</h2>
-            <p className="text-[#8B4513]/60 text-sm mb-7">Join BrewHaven for the full experience.</p>
+            <h2 className="font-display text-3xl text-[#3C1810] mb-1">
+              Create Account
+            </h2>
+            <p className="text-[#8B4513]/60 text-sm mb-7">
+              Join BrewHaven for the full experience.
+            </p>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               {errors.general && (
@@ -150,7 +195,11 @@ export default function RegisterPage() {
                   placeholder="At least 6 characters"
                   icon="🔒"
                   iconRight={
-                    <button type="button" onClick={() => setShowPass(!showPass)} className="cursor-pointer">
+                    <button
+                      type="button"
+                      onClick={() => setShowPass(!showPass)}
+                      className="cursor-pointer"
+                    >
                       {showPass ? "🙈" : "👁️"}
                     </button>
                   }
@@ -164,11 +213,15 @@ export default function RegisterPage() {
                       {Array.from({ length: 5 }).map((_, i) => (
                         <div
                           key={i}
-                          className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${i < strength ? strengthColor : "bg-gray-200"}`}
+                          className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+                            i < strength ? strengthColor : "bg-gray-200"
+                          }`}
                         />
                       ))}
                     </div>
-                    <span className="text-xs font-semibold text-[#8B4513]/60">{strengthLabel}</span>
+                    <span className="text-xs font-semibold text-[#8B4513]/60">
+                      {strengthLabel}
+                    </span>
                   </div>
                 )}
               </div>
@@ -183,14 +236,23 @@ export default function RegisterPage() {
                 error={errors.confirm}
               />
 
-              <Button type="submit" fullWidth size="lg" loading={loading} className="mt-2">
-                Create Account ✨
+              <Button
+                type="submit"
+                fullWidth
+                size="lg"
+                loading={loading}
+                className="mt-2"
+              >
+                Create Account
               </Button>
             </form>
 
             <p className="text-center text-sm text-[#8B4513]/60 mt-5">
               Already have an account?{" "}
-              <Link to="/login" className="text-[#D4956A] font-bold hover:underline">
+              <Link
+                to="/login"
+                className="text-[#D4956A] font-bold hover:underline"
+              >
                 Sign in
               </Link>
             </p>

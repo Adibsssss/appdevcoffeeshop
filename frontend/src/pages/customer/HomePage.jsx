@@ -56,18 +56,19 @@ export default function HomePage() {
               Your Cozy Coffee Corner ☕
             </p>
             <p className="text-[#C4A882] text-lg mb-8 max-w-md animate-slide-up delay-300 leading-relaxed">
-              From bold espressos to dreamy frappes — handcrafted drinks made with love, delivered to you fresh.
+              From bold espressos to dreamy frappes — handcrafted drinks made
+              with love, delivered to you fresh.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start animate-slide-up delay-400">
               <Link to="/menu">
                 <Button size="xl" variant="primary">
-                  🍽️ Browse Menu
+                  Browse Menu
                 </Button>
               </Link>
               {!user && (
                 <Link to="/register">
                   <Button size="xl" variant="secondary">
-                    ✨ Join Free
+                    Join Free
                   </Button>
                 </Link>
               )}
@@ -80,12 +81,14 @@ export default function HomePage() {
               <div className="absolute inset-0 rounded-full bg-[#D4956A]/20 animate-pulse" />
               <div className="absolute inset-4 rounded-full bg-[#D4956A]/10" />
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-9xl md:text-[10rem] animate-float">☕</span>
+                <span className="text-9xl md:text-[10rem] animate-float">
+                  ☕
+                </span>
               </div>
               {/* Orbiting badges */}
               {[
                 { e: "🥐", pos: "top-0 right-4", delay: "0s" },
-                { e: "🧋", pos: "bottom-4 left-0", delay: "1s" },
+                { e: "🍵", pos: "bottom-4 left-0", delay: "1s" },
                 { e: "🍫", pos: "top-12 left-0", delay: "2s" },
               ].map(({ e, pos, delay }) => (
                 <div
@@ -104,8 +107,15 @@ export default function HomePage() {
         <div className="relative bg-[#D4956A]/20 backdrop-blur-sm border-t border-white/10">
           <div className="max-w-6xl mx-auto px-6 py-6 grid grid-cols-2 md:grid-cols-4 gap-4">
             {HERO_STATS.map((s, i) => (
-              <div key={s.label} className={`text-center animate-slide-up delay-${(i + 1) * 100}`}>
-                <div className="font-display text-3xl text-[#D4956A]">{s.value}</div>
+              <div
+                key={s.label}
+                className={`text-center animate-slide-up delay-${
+                  (i + 1) * 100
+                }`}
+              >
+                <div className="font-display text-3xl text-[#D4956A]">
+                  {s.value}
+                </div>
                 <div className="text-[#C4A882] text-sm">{s.label}</div>
               </div>
             ))}
@@ -117,16 +127,25 @@ export default function HomePage() {
       <section className="max-w-6xl mx-auto px-6 py-16">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="font-display text-3xl text-[#3C1810]">⭐ Fan Favorites</h2>
-            <p className="text-[#8B4513]/60 mt-1">Our most-loved picks by the community</p>
+            <h2 className="font-display text-3xl text-[#3C1810]">
+              ⭐ Fan Favorites
+            </h2>
+            <p className="text-[#8B4513]/60 mt-1">
+              Our most-loved picks by the community
+            </p>
           </div>
           <Link to="/menu">
-            <Button variant="secondary" size="sm">View All →</Button>
+            <Button variant="secondary" size="sm">
+              View All →
+            </Button>
           </Link>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {FEATURED_ITEMS.map((product, i) => (
-            <div key={product.id} className={`animate-slide-up delay-${(i + 1) * 100}`}>
+            <div
+              key={product.id}
+              className={`animate-slide-up delay-${(i + 1) * 100}`}
+            >
               <ProductCard product={product} />
             </div>
           ))}
@@ -136,21 +155,51 @@ export default function HomePage() {
       {/* How It Works */}
       <section className="bg-[#3C1810] text-white py-16">
         <div className="max-w-6xl mx-auto px-6">
-          <h2 className="font-display text-3xl text-center text-[#D4956A] mb-2">How It Works</h2>
-          <p className="text-center text-[#C4A882] mb-12">Order your favorites in 3 easy steps</p>
+          <h2 className="font-display text-3xl text-center text-[#D4956A] mb-2">
+            How It Works
+          </h2>
+          <p className="text-center text-[#C4A882] mb-12">
+            Order your favorites in 3 easy steps
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { step: "01", emoji: "🍽️", title: "Browse Menu", desc: "Explore our full menu of coffees, drinks, pastries, and snacks." },
-              { step: "02", emoji: "🛒", title: "Add to Cart", desc: "Select your items, customize quantities, and review your order." },
-              { step: "03", emoji: "✅", title: "Checkout & Enjoy", desc: "Place your order and pick it up fresh at the counter!" },
+              {
+                step: "01",
+                emoji: "🍽️",
+                title: "Browse Menu",
+                desc: "Explore our full menu of coffees, drinks, pastries, and snacks.",
+              },
+              {
+                step: "02",
+                emoji: "🛒",
+                title: "Add to Cart",
+                desc: "Select your items, customize quantities, and review your order.",
+              },
+              {
+                step: "03",
+                emoji: "✅",
+                title: "Checkout & Enjoy",
+                desc: "Place your order and pick it up fresh at the counter!",
+              },
             ].map((item, i) => (
-              <div key={item.step} className={`text-center animate-slide-up delay-${(i + 1) * 200}`}>
+              <div
+                key={item.step}
+                className={`text-center animate-slide-up delay-${
+                  (i + 1) * 200
+                }`}
+              >
                 <div className="w-20 h-20 bg-[#D4956A]/20 rounded-3xl flex items-center justify-center text-4xl mx-auto mb-4">
                   {item.emoji}
                 </div>
-                <div className="font-display text-[#D4956A] text-sm mb-1">Step {item.step}</div>
-                <h3 className="font-display text-xl text-white mb-2">{item.title}</h3>
-                <p className="text-[#C4A882] text-sm leading-relaxed">{item.desc}</p>
+                <div className="font-display text-[#D4956A] text-sm mb-1">
+                  Step {item.step}
+                </div>
+                <h3 className="font-display text-xl text-white mb-2">
+                  {item.title}
+                </h3>
+                <p className="text-[#C4A882] text-sm leading-relaxed">
+                  {item.desc}
+                </p>
               </div>
             ))}
           </div>
@@ -162,16 +211,23 @@ export default function HomePage() {
         <section className="bg-gradient-to-br from-[#D4956A] to-[#8B4513] py-16">
           <div className="max-w-2xl mx-auto text-center px-6">
             <div className="text-6xl mb-4 animate-float">🎉</div>
-            <h2 className="font-display text-4xl text-white mb-3">Ready to Order?</h2>
+            <h2 className="font-display text-4xl text-white mb-3">
+              Ready to Order?
+            </h2>
             <p className="text-white/80 mb-8 text-lg">
-              Create your free account and start enjoying BrewHaven's handcrafted drinks today!
+              Create your free account and start enjoying BrewHaven's
+              handcrafted drinks today!
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link to="/register">
-                <Button size="xl" variant="dark">✨ Create Free Account</Button>
+                <Button size="xl" variant="dark">
+                  Create Free Account
+                </Button>
               </Link>
               <Link to="/menu">
-                <Button size="xl" variant="secondary">Browse Menu First</Button>
+                <Button size="xl" variant="secondary">
+                  Browse Menu First
+                </Button>
               </Link>
             </div>
           </div>
