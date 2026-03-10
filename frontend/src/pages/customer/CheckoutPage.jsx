@@ -25,21 +25,6 @@ function OrderSummary({ items, totalPrice }) {
       <div className="space-y-3 mb-4">
         {items.map((item) => (
           <div key={item.id} className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#FFF8F0] rounded-xl flex items-center justify-center flex-shrink-0">
-              <svg
-                className="w-4 h-4 text-[#C4A882]"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 20.25h18A2.25 2.25 0 0023.25 18V6A2.25 2.25 0 0021 3.75H3A2.25 2.25 0 00.75 6v12A2.25 2.25 0 003 20.25z"
-                />
-              </svg>
-            </div>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-[#3C1810] text-sm truncate">
                 {item.name}
@@ -175,7 +160,7 @@ export default function CheckoutPage() {
             {/* Customer Info */}
             <div className="bg-white rounded-3xl border-2 border-[#F5E6D3] p-6">
               <h3 className="font-display text-xl text-[#3C1810] mb-4">
-                📋 Customer Details
+                Customer Details
               </h3>
               {user?.role === "admin" ? (
                 <div className="space-y-3">
@@ -219,7 +204,6 @@ export default function CheckoutPage() {
                     />
                   </div>
                   <div className="flex items-center gap-2 bg-amber-50 rounded-2xl p-3 text-amber-700 text-xs font-medium">
-                    <span>👑</span>
                     <span>
                       Ordering as admin — order will be assigned to this
                       customer name.
@@ -242,7 +226,7 @@ export default function CheckoutPage() {
             {/* Payment Method */}
             <div className="bg-white rounded-3xl border-2 border-[#F5E6D3] p-6">
               <h3 className="font-display text-xl text-[#3C1810] mb-4">
-                💰 Payment Method
+                Payment Method
               </h3>
               <div className="grid grid-cols-2 gap-3 mb-5">
                 {PAYMENT_METHODS.map((m) => (
@@ -349,7 +333,6 @@ export default function CheckoutPage() {
                     />
                   </div>
                   <div className="flex items-center gap-2 bg-amber-50 rounded-2xl p-3 text-amber-700 text-xs font-medium">
-                    <span>🔒</span>
                     <span>This is a demo. No real payment is processed.</span>
                   </div>
                 </div>
@@ -409,7 +392,7 @@ export default function CheckoutPage() {
                 : `Place Order · ₱${totalPrice.toFixed(2)}`}
             </Button>
             <p className="text-xs text-center text-[#8B4513]/50">
-              🔒 Demo payments only. No real charges.
+              Demo payments only. No real charges.
             </p>
           </div>
         </div>
