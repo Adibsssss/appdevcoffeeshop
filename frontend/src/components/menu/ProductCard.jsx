@@ -1,8 +1,12 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
 import { useToast } from "../ui/Toast";
+import { useAuth } from "../../context/AuthContext";
 import Badge from "../ui/Badge";
 
+// Maps product name → local image path in /public/images/products/
+// Add your image files to: frontend/public/images/products/
 const PRODUCT_IMAGES = {
   "Classic Espresso": "/images/products/classic-espresso.jpg",
   "Caramel Latte": "/images/products/caramel-latte.jpg",
@@ -31,6 +35,8 @@ const PRODUCT_IMAGES = {
 export default function ProductCard({ product }) {
   const { addItem, items } = useCart();
   const { addToast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [adding, setAdding] = useState(false);
 
   const cartItem = items.find((i) => i.id === product.id);
@@ -38,6 +44,11 @@ export default function ProductCard({ product }) {
 
   const handleAdd = () => {
     if (!product.available) return;
+    if (!user) {
+      addToast("Please log in to add items to your cart.", "error");
+      navigate("/login");
+      return;
+    }
     setAdding(true);
     addItem(product);
     addToast(`${product.name} added to cart!`, "cart");
@@ -63,7 +74,7 @@ export default function ProductCard({ product }) {
       )}
 
       {/* Product Image */}
-      <div className="w-full h-50 rounded-2xl bg-[#F5E6D3] mb-4 overflow-hidden flex-shrink-0">
+      <div className="w-full h-36 rounded-2xl bg-[#F5E6D3] mb-4 overflow-hidden flex-shrink-0">
         {PRODUCT_IMAGES[product.name] ? (
           <img
             src={PRODUCT_IMAGES[product.name]}
