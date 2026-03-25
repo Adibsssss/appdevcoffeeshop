@@ -53,7 +53,7 @@ export default function HomePage() {
               BrewHaven
             </h1>
             <p className="font-display text-2xl md:text-3xl text-white mb-4 animate-slide-up delay-200">
-              Your Cozy Coffee Corner ☕
+              Your Cozy Coffee Corner
             </p>
             <p className="text-[#C4A882] text-lg mb-8 max-w-md animate-slide-up delay-300 leading-relaxed">
               From bold espressos to dreamy frappes — handcrafted drinks made
@@ -128,7 +128,7 @@ export default function HomePage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="font-display text-3xl text-[#3C1810]">
-              ⭐ Fan Favorites
+              Fan Favorites
             </h2>
             <p className="text-[#8B4513]/60 mt-1">
               Our most-loved picks by the community
@@ -210,7 +210,6 @@ export default function HomePage() {
       {!user && (
         <section className="bg-gradient-to-br from-[#D4956A] to-[#8B4513] py-16">
           <div className="max-w-2xl mx-auto text-center px-6">
-            <div className="text-6xl mb-4 animate-float">🎉</div>
             <h2 className="font-display text-4xl text-white mb-3">
               Ready to Order?
             </h2>

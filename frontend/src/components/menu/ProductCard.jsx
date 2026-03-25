@@ -5,8 +5,6 @@ import { useToast } from "../ui/Toast";
 import { useAuth } from "../../context/AuthContext";
 import Badge from "../ui/Badge";
 
-// Maps product name → local image path in /public/images/products/
-// Add your image files to: frontend/public/images/products/
 const PRODUCT_IMAGES = {
   "Classic Espresso": "/images/products/classic-espresso.jpg",
   "Caramel Latte": "/images/products/caramel-latte.jpg",
