@@ -36,6 +36,7 @@ function Overview({ onTabChange }) {
           ordersAPI.adminOrders(),
           reportsAPI.topProducts(3),
         ]);
+        console.log("Summary response:", JSON.stringify(sum, null, 2));
         setSummary(sum);
         const list = Array.isArray(orders) ? orders : orders.results || [];
         setRecent(list.slice(0, 5));
