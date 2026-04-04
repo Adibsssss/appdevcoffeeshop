@@ -142,5 +142,6 @@ export const reportsAPI = {
   daily: (days = 7) => api.get(`/reports/daily/?days=${days}`),
   weekly: (weeks = 8) => api.get(`/reports/weekly/?weeks=${weeks}`),
   monthly: (months = 12) => api.get(`/reports/monthly/?months=${months}`),
-  topProducts: (limit = 5) => api.get(`/reports/top-products/?limit=${limit}`),
+  topProducts: (limit = 5, period = "monthly") =>
+    api.get(`/reports/top-products/?limit=${limit}&period=${period}`),
 };

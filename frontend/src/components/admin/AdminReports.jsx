@@ -175,7 +175,7 @@ function LineChart({ data, valueKey, labelKey, color = "#D4956A" }) {
 function downloadCSV(filename, rows) {
   const csv = rows
     .map((r) =>
-      r.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(",")
+      r.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","),
     )
     .join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -239,18 +239,16 @@ export default function AdminReports() {
     const load = async () => {
       try {
         setLoading(true);
-        const [sum, daily, weekly, monthly, top] = await Promise.all([
+        const [sum, daily, weekly, monthly] = await Promise.all([
           reportsAPI.summary(),
           reportsAPI.daily(7),
           reportsAPI.weekly(4),
           reportsAPI.monthly(7),
-          reportsAPI.topProducts(5),
         ]);
         setSummary(sum);
         setDaily(Array.isArray(daily) ? daily : []);
         setWeekly(Array.isArray(weekly) ? weekly : []);
         setMonthly(Array.isArray(monthly) ? monthly : []);
-        setTop(Array.isArray(top) ? top : []);
       } catch (e) {
         console.error("Reports load error:", e.message);
       } finally {
@@ -260,6 +258,18 @@ export default function AdminReports() {
     load();
   }, []);
 
+  useEffect(() => {
+    const loadTop = async () => {
+      try {
+        const top = await reportsAPI.topProducts(5, period);
+        setTop(Array.isArray(top) ? top : []);
+      } catch (e) {
+        console.error("Top products load error:", e.message);
+      }
+    };
+    loadTop();
+  }, [period]);
+
   // ── Derive active dataset from period ────────────────────────────────────
   const dataMap = { dailyData, weeklyData, monthlyData };
   const cfg = PERIODS[period];
@@ -267,11 +277,11 @@ export default function AdminReports() {
 
   const periodOrders = activeData.reduce(
     (s, d) => s + (d[cfg.ordersKey] || 0),
-    0
+    0,
   );
   const periodRevenue = activeData.reduce(
     (s, d) => s + Number(d[cfg.revenueKey] || 0),
-    0
+    0,
   );
   const avgOrder =
     periodOrders > 0 ? Math.round(periodRevenue / periodOrders) : 0;
@@ -304,24 +314,24 @@ export default function AdminReports() {
       // Today full day — compare using LOCAL date (not UTC) to avoid timezone shift
       const today = new Date();
       const todayStr = `${today.getFullYear()}-${String(
-        today.getMonth() + 1
+        today.getMonth() + 1,
       ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
       const toLocalDateStr = (dateStr) => {
         const d = new Date(dateStr);
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
           2,
-          "0"
+          "0",
         )}-${String(d.getDate()).padStart(2, "0")}`;
       };
 
       const filtered = orders.filter(
-        (o) => toLocalDateStr(o.created_at) === todayStr
+        (o) => toLocalDateStr(o.created_at) === todayStr,
       );
 
       const totalRevenue = filtered.reduce(
         (s, o) => s + Number(o.total_amount || 0),
-        0
+        0,
       );
       const products = buildProductSummary(filtered);
 
@@ -390,7 +400,7 @@ export default function AdminReports() {
         const d = new Date(o.created_at);
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
           2,
-          "0"
+          "0",
         )}-${String(d.getDate()).padStart(2, "0")}`;
         if (!byDay[key]) byDay[key] = [];
         byDay[key].push(o);
@@ -398,7 +408,7 @@ export default function AdminReports() {
 
       const totalRevenue = filtered.reduce(
         (s, o) => s + Number(o.total_amount || 0),
-        0
+        0,
       );
       const products = buildProductSummary(filtered);
       const fmtDate = (d) =>
@@ -448,7 +458,7 @@ export default function AdminReports() {
           ["PRODUCTS SOLD THIS WEEK"],
           ["Product", "Qty Sold", "Revenue (₱)"],
           ...products.map((p) => [p.name, p.qty, p.revenue.toFixed(2)]),
-        ]
+        ],
       );
     } catch (e) {
       alert("Failed to export weekly report.");
@@ -483,7 +493,7 @@ export default function AdminReports() {
         const d = new Date(o.created_at);
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
           2,
-          "0"
+          "0",
         )}-${String(d.getDate()).padStart(2, "0")}`;
         if (!byDay[key]) byDay[key] = [];
         byDay[key].push(o);
@@ -491,7 +501,7 @@ export default function AdminReports() {
 
       const totalRevenue = filtered.reduce(
         (s, o) => s + Number(o.total_amount || 0),
-        0
+        0,
       );
       const products = buildProductSummary(filtered);
       const monthLabel = today.toLocaleDateString("en-PH", {

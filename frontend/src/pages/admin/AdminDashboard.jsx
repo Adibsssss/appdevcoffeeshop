@@ -27,6 +27,7 @@ function Overview({ onTabChange }) {
   const [recentOrders, setRecent] = useState([]);
   const [topProducts, setTop] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [topPeriod, setTopPeriod] = useState("monthly");
 
   useEffect(() => {
     const load = async () => {
@@ -36,7 +37,6 @@ function Overview({ onTabChange }) {
           ordersAPI.adminOrders(),
           reportsAPI.topProducts(3),
         ]);
-        console.log("Summary response:", JSON.stringify(sum, null, 2));
         setSummary(sum);
         const list = Array.isArray(orders) ? orders : orders.results || [];
         setRecent(list.slice(0, 5));
@@ -49,6 +49,18 @@ function Overview({ onTabChange }) {
     };
     load();
   }, []);
+
+  useEffect(() => {
+    const loadTop = async () => {
+      try {
+        const top = await reportsAPI.topProducts(3, topPeriod);
+        setTop(Array.isArray(top) ? top : []);
+      } catch (e) {
+        console.error("Top products load error:", e.message);
+      }
+    };
+    loadTop();
+  }, [topPeriod]);
 
   if (loading)
     return (
@@ -79,7 +91,7 @@ function Overview({ onTabChange }) {
         },
         {
           label: "Total Customers",
-          value: summary.total.customers,
+          value: summary.today.customers,
           color: "from-pink-400 to-rose-500",
         },
       ]
@@ -174,9 +186,24 @@ function Overview({ onTabChange }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="bg-white rounded-3xl border-2 border-[#F5E6D3] p-5">
-          <h4 className="font-display text-lg text-[#3C1810] mb-4">
-            Top Sellers
-          </h4>
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="font-display text-lg text-[#3C1810]">Top Sellers</h4>
+            <div className="flex gap-1">
+              {["daily", "weekly", "monthly"].map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setTopPeriod(p)}
+                  className={`px-3 py-1 rounded-xl text-xs font-semibold capitalize transition-all ${
+                    topPeriod === p
+                      ? "bg-[#D4956A] text-white"
+                      : "bg-[#F5E6D3] text-[#8B4513] hover:bg-[#D4956A] hover:text-white"
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
           {topProducts.length === 0 ? (
             <p className="text-[#8B4513]/40 text-sm">No sales data yet.</p>
           ) : (
@@ -206,7 +233,7 @@ export default function AdminDashboard() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(
-    searchParams.get("tab") || "overview"
+    searchParams.get("tab") || "overview",
   );
 
   useEffect(() => {

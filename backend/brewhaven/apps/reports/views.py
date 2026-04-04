@@ -202,21 +202,28 @@ class MonthlyReportView(APIView):
 
 
 class TopProductsView(APIView):
-    """GET /api/v1/reports/top-products/?limit=5"""
+    """GET /api/v1/reports/top-products/?limit=5&period=monthly"""
     permission_classes = [IsAdmin]
 
     def get(self, request):
         limit = int(request.query_params.get("limit", 5))
+        period = request.query_params.get("period", "monthly")  # daily | weekly | monthly
 
-    # Current month scope
         now = datetime.now(timezone.utc)
-        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        if period == "daily":
+            since = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif period == "weekly":
+            since = now - timedelta(days=now.weekday())  # Monday of current week
+            since = since.replace(hour=0, minute=0, second=0, microsecond=0)
+        else:  # monthly
+            since = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
         pipeline = [
-        {"$match": {
-            "status": {"$nin": ["cancelled"]},
-            "created_at": {"$gte": month_start},  
-        }},
+            {"$match": {
+                "status": {"$nin": ["cancelled"]},
+                "created_at": {"$gte": since},
+            }},
             {"$unwind": "$items"},
             {"$group": {
                 "_id":           "$items.product_id",
