@@ -28,6 +28,10 @@ def _products():
     return get_collection("products")
 
 
+# Reusable filter: all orders except cancelled
+NOT_CANCELLED = {"status": {"$nin": ["cancelled"]}}
+
+
 class DashboardSummaryView(APIView):
     """GET /api/v1/reports/summary/"""
     permission_classes = [IsAdmin]
@@ -39,7 +43,7 @@ class DashboardSummaryView(APIView):
 
         today_pipeline = [
             {"$match": {
-                "status":     {"$nin": ["cancelled"]},
+                **NOT_CANCELLED,
                 "created_at": {"$gte": today_start, "$lte": today_end},
             }},
             {"$group": {
@@ -53,16 +57,15 @@ class DashboardSummaryView(APIView):
         today_data   = today_result[0] if today_result else {"count": 0, "revenue": 0.0, "avg": 0.0}
 
         total_pipeline = [
-            {"$match": {"status": "completed"}},
+            {"$match": NOT_CANCELLED},
             {"$group": {"_id": None, "revenue": {"$sum": "$total_amount"}}},
         ]
         total_result  = list(_orders().aggregate(total_pipeline))
         total_revenue = total_result[0]["revenue"] if total_result else 0.0
 
-        # Today's unique customers who placed orders
         today_customers_result = _orders().aggregate([
             {"$match": {
-                "status":     {"$nin": ["cancelled"]},
+                **NOT_CANCELLED,
                 "created_at": {"$gte": today_start, "$lte": today_end},
             }},
             {"$group": {"_id": "$customer_id"}},
@@ -97,7 +100,7 @@ class DailyReportView(APIView):
         since = datetime.now(timezone.utc) - timedelta(days=days)
 
         pipeline = [
-            {"$match": {"status": "completed", "created_at": {"$gte": since}}},
+            {"$match": {**NOT_CANCELLED, "created_at": {"$gte": since}}},
             {"$group": {
                 "_id": {
                     "year":  {"$year":  "$created_at"},
@@ -131,7 +134,7 @@ class WeeklyReportView(APIView):
         since = datetime.now(timezone.utc) - timedelta(weeks=weeks)
 
         pipeline = [
-            {"$match": {"status": "completed", "created_at": {"$gte": since}}},
+            {"$match": {**NOT_CANCELLED, "created_at": {"$gte": since}}},
             {"$group": {
                 "_id": {
                     "year": {"$isoWeekYear": "$created_at"},
@@ -170,7 +173,7 @@ class MonthlyReportView(APIView):
         since  = datetime.now(timezone.utc) - timedelta(days=months * 30)
 
         pipeline = [
-            {"$match": {"status": "completed", "created_at": {"$gte": since}}},
+            {"$match": {**NOT_CANCELLED, "created_at": {"$gte": since}}},
             {"$group": {
                 "_id": {
                     "year":  {"$year":  "$created_at"},
@@ -203,7 +206,7 @@ class YearlyReportView(APIView):
         since = datetime.now(timezone.utc) - timedelta(days=years * 365)
 
         pipeline = [
-            {"$match": {"status": "completed", "created_at": {"$gte": since}}},
+            {"$match": {**NOT_CANCELLED, "created_at": {"$gte": since}}},
             {"$group": {
                 "_id":     {"year": {"$year": "$created_at"}},
                 "revenue": {"$sum": "$total_amount"},
@@ -229,7 +232,7 @@ class TopProductsView(APIView):
 
     def get(self, request):
         limit  = int(request.query_params.get("limit", 5))
-        period = request.query_params.get("period", "monthly")  # daily|weekly|monthly|yearly
+        period = request.query_params.get("period", "monthly")
 
         now = datetime.now(timezone.utc)
 
@@ -244,10 +247,7 @@ class TopProductsView(APIView):
             since = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
         pipeline = [
-            {"$match": {
-                "status":     {"$nin": ["cancelled"]},
-                "created_at": {"$gte": since},
-            }},
+            {"$match": {**NOT_CANCELLED, "created_at": {"$gte": since}}},
             {"$unwind": "$items"},
             {"$group": {
                 "_id":           "$items.product_id",
