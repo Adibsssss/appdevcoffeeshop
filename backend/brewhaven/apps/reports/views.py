@@ -202,8 +202,15 @@ class TopProductsView(APIView):
     def get(self, request):
         limit = int(request.query_params.get("limit", 5))
 
+    # Current month scope
+        now = datetime.now(timezone.utc)
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
         pipeline = [
-            {"$match": {"status": "completed"}},
+        {"$match": {
+            "status": {"$nin": ["cancelled"]},
+            "created_at": {"$gte": month_start},  
+        }},
             {"$unwind": "$items"},
             {"$group": {
                 "_id":           "$items.product_id",
