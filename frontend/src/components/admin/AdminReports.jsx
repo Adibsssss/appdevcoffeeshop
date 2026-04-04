@@ -653,7 +653,7 @@ export default function AdminReports() {
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center mb-1">
                       <span className="font-semibold text-[#3C1810] text-sm truncate">
-                        {p.emoji} {p.name}
+                        {p.name}
                       </span>
                       <span className="font-bold text-[#D4956A] text-sm ml-2">
                         ₱{Number(p.total_revenue).toLocaleString()}
@@ -727,7 +727,6 @@ export default function AdminReports() {
                 </>
               ) : (
                 <>
-                  <span>📊</span>
                   <span>Export {label}</span>
                   <span className="text-[#C4A882] text-xs font-normal">
                     XLSX
