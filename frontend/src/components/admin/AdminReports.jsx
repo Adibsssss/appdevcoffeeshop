@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { reportsAPI, ordersAPI } from "../../utils/api";
 
+// ── Tiny line chart ───────────────────────────────────────────────────────────
 function LineChart({ data, valueKey, labelKey, color = "#D4956A" }) {
   const [tooltip, setTooltip] = useState(null);
 
@@ -19,7 +20,6 @@ function LineChart({ data, valueKey, labelKey, color = "#D4956A" }) {
 
   const values = data.map((d) => Number(d[valueKey]) || 0);
   const maxVal = Math.max(...values) || 1;
-  const minVal = 0;
 
   const xStep = innerW / Math.max(data.length - 1, 1);
 
@@ -30,7 +30,6 @@ function LineChart({ data, valueKey, labelKey, color = "#D4956A" }) {
     label: d[labelKey],
   }));
 
-  // Build smooth SVG path
   const linePath = pts
     .map((p, i) => {
       if (i === 0) return `M ${p.x} ${p.y}`;
@@ -40,13 +39,11 @@ function LineChart({ data, valueKey, labelKey, color = "#D4956A" }) {
     })
     .join(" ");
 
-  // Fill area under the line
   const fillPath =
     linePath +
     ` L ${pts[pts.length - 1].x} ${PAD.top + innerH}` +
     ` L ${pts[0].x} ${PAD.top + innerH} Z`;
 
-  // Y-axis gridlines
   const gridLines = [0, 0.25, 0.5, 0.75, 1].map((frac) => {
     const val = maxVal * frac;
     const y = PAD.top + innerH - frac * innerH;
@@ -74,7 +71,6 @@ function LineChart({ data, valueKey, labelKey, color = "#D4956A" }) {
           </linearGradient>
         </defs>
 
-        {/* Grid lines */}
         {gridLines.map(({ y, label }) => (
           <g key={y}>
             <line
@@ -98,10 +94,7 @@ function LineChart({ data, valueKey, labelKey, color = "#D4956A" }) {
           </g>
         ))}
 
-        {/* Fill */}
         <path d={fillPath} fill={`url(#fill-${valueKey})`} />
-
-        {/* Line */}
         <path
           d={linePath}
           fill="none"
@@ -111,10 +104,8 @@ function LineChart({ data, valueKey, labelKey, color = "#D4956A" }) {
           strokeLinejoin="round"
         />
 
-        {/* Dots + hover areas */}
         {pts.map((p, i) => (
           <g key={i} onMouseEnter={() => setTooltip({ ...p, index: i })}>
-            {/* Invisible wide hover zone */}
             <rect
               x={p.x - xStep / 2}
               y={PAD.top}
@@ -122,7 +113,6 @@ function LineChart({ data, valueKey, labelKey, color = "#D4956A" }) {
               height={innerH + PAD.bottom}
               fill="transparent"
             />
-            {/* Dot */}
             <circle
               cx={p.x}
               cy={p.y}
@@ -132,24 +122,21 @@ function LineChart({ data, valueKey, labelKey, color = "#D4956A" }) {
               strokeWidth={tooltip?.index === i ? 2.5 : 2}
               style={{ transition: "r 0.15s" }}
             />
-            {/* X-axis label */}
             <text
               x={p.x}
               y={H - 4}
               textAnchor="middle"
               fontSize="10"
               fill="#C4A882"
-              style={{ overflow: "hidden" }}
             >
-              {String(p.label).length > 5
-                ? String(p.label).slice(0, 5)
+              {String(p.label).length > 6
+                ? String(p.label).slice(0, 6)
                 : p.label}
             </text>
           </g>
         ))}
       </svg>
 
-      {/* Floating tooltip */}
       {tooltip && (
         <div
           className="absolute bg-[#3C1810] text-white text-xs rounded-xl px-3 py-2 pointer-events-none shadow-lg z-10 whitespace-nowrap"
@@ -171,31 +158,40 @@ function LineChart({ data, valueKey, labelKey, color = "#D4956A" }) {
   );
 }
 
-// ── CSV helpers ───────────────────────────────────────────────────────────────
-function downloadCSV(filename, rows) {
-  const csv = rows
-    .map((r) =>
-      r.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","),
-    )
-    .join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+// ── Excel export helper (SheetJS loaded from CDN) ────────────────────────────
+async function loadXLSX() {
+  if (window.XLSX) return window.XLSX;
+  await new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src =
+      "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  return window.XLSX;
 }
-function formatDate() {
-  return new Date().toISOString().slice(0, 10);
+
+function buildProductSummary(orders) {
+  const map = {};
+  orders.forEach((order) => {
+    (order.items || []).forEach((item) => {
+      const key = item.product_name || item.name;
+      if (!map[key]) map[key] = { name: key, qty: 0, revenue: 0, orders: 0 };
+      map[key].qty += item.quantity || 0;
+      map[key].revenue += item.subtotal || item.unit_price * item.quantity || 0;
+      map[key].orders += 1;
+    });
+  });
+  return Object.values(map).sort((a, b) => b.revenue - a.revenue);
 }
 
 // ── Period config ─────────────────────────────────────────────────────────────
 const PERIODS = {
   daily: {
     label: "Daily",
-    chartTitle: " Orders — Last 7 Days",
-    revenueTitle: " Revenue — Last 7 Days",
+    chartTitle: "Orders — Last 7 Days",
+    revenueTitle: "Revenue — Last 7 Days",
     dataKey: "dailyData",
     labelKey: "day",
     ordersKey: "orders",
@@ -204,8 +200,8 @@ const PERIODS = {
   },
   weekly: {
     label: "Weekly",
-    chartTitle: " Orders — Last 4 Weeks",
-    revenueTitle: " Revenue — Last 4 Weeks",
+    chartTitle: "Orders — Last 4 Weeks",
+    revenueTitle: "Revenue — Last 4 Weeks",
     dataKey: "weeklyData",
     labelKey: "week",
     ordersKey: "orders",
@@ -214,41 +210,56 @@ const PERIODS = {
   },
   monthly: {
     label: "Monthly",
-    chartTitle: " Orders — Last 7 Months",
-    revenueTitle: " Revenue — Last 7 Months",
+    chartTitle: "Orders — Last 7 Months",
+    revenueTitle: "Revenue — Last 7 Months",
     dataKey: "monthlyData",
     labelKey: "month",
     ordersKey: "orders",
     revenueKey: "revenue",
     statLabel: "Orders (7 months)",
   },
+  yearly: {
+    label: "Yearly",
+    chartTitle: "Orders — By Year",
+    revenueTitle: "Revenue — By Year",
+    dataKey: "yearlyData",
+    labelKey: "year",
+    ordersKey: "orders",
+    revenueKey: "revenue",
+    statLabel: "Orders (all years)",
+  },
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Main component ────────────────────────────────────────────────────────────
 export default function AdminReports() {
   const [period, setPeriod] = useState("daily");
   const [summary, setSummary] = useState(null);
   const [dailyData, setDaily] = useState([]);
   const [weeklyData, setWeekly] = useState([]);
   const [monthlyData, setMonthly] = useState([]);
+  const [yearlyData, setYearly] = useState([]);
   const [topProducts, setTop] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [topLoading, setTopLoading] = useState(false);
   const [exporting, setExporting] = useState(null);
 
+  // Load everything except top products once
   useEffect(() => {
     const load = async () => {
       try {
         setLoading(true);
-        const [sum, daily, weekly, monthly] = await Promise.all([
+        const [sum, daily, weekly, monthly, yearly] = await Promise.all([
           reportsAPI.summary(),
           reportsAPI.daily(7),
           reportsAPI.weekly(4),
           reportsAPI.monthly(7),
+          reportsAPI.yearly(3),
         ]);
         setSummary(sum);
         setDaily(Array.isArray(daily) ? daily : []);
         setWeekly(Array.isArray(weekly) ? weekly : []);
         setMonthly(Array.isArray(monthly) ? monthly : []);
+        setYearly(Array.isArray(yearly) ? yearly : []);
       } catch (e) {
         console.error("Reports load error:", e.message);
       } finally {
@@ -258,20 +269,24 @@ export default function AdminReports() {
     load();
   }, []);
 
+  // Reload top products whenever period changes
   useEffect(() => {
     const loadTop = async () => {
       try {
+        setTopLoading(true);
         const top = await reportsAPI.topProducts(5, period);
         setTop(Array.isArray(top) ? top : []);
       } catch (e) {
         console.error("Top products load error:", e.message);
+      } finally {
+        setTopLoading(false);
       }
     };
     loadTop();
   }, [period]);
 
-  // ── Derive active dataset from period ────────────────────────────────────
-  const dataMap = { dailyData, weeklyData, monthlyData };
+  // ── Derived values ──────────────────────────────────────────────────────────
+  const dataMap = { dailyData, weeklyData, monthlyData, yearlyData };
   const cfg = PERIODS[period];
   const activeData = dataMap[cfg.dataKey] || [];
 
@@ -286,48 +301,93 @@ export default function AdminReports() {
   const avgOrder =
     periodOrders > 0 ? Math.round(periodRevenue / periodOrders) : 0;
 
-  // ── Shared: build product summary from a list of orders ──────────────────
-  const buildProductSummary = (orders) => {
-    const map = {};
-    orders.forEach((order) => {
-      (order.items || []).forEach((item) => {
-        const key = item.product_name || item.name;
-        if (!map[key]) map[key] = { name: key, qty: 0, revenue: 0, orders: 0 };
-        map[key].qty += item.quantity || 0;
-        map[key].revenue +=
-          item.subtotal || item.unit_price * item.quantity || 0;
-        map[key].orders += 1;
-      });
-    });
-    return Object.values(map).sort((a, b) => b.revenue - a.revenue);
+  // ── Excel export helpers ────────────────────────────────────────────────────
+  const styleHeader = (ws, range, XLSX) => {
+    // openpyxl-style cell styling via SheetJS CE is limited — we use col widths + data only
+    void ws;
+    void range;
+    void XLSX;
   };
 
-  // ── Export handlers ───────────────────────────────────────────────────────
-  const exportDaily = async () => {
-    setExporting("daily");
+  const addSheet = (wb, XLSX, sheetName, rows) => {
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    // Auto column widths
+    const colWidths = rows.reduce((acc, row) => {
+      row.forEach((cell, i) => {
+        const len = String(cell ?? "").length;
+        acc[i] = Math.max(acc[i] || 8, len + 2);
+      });
+      return acc;
+    }, []);
+    ws["!cols"] = colWidths.map((w) => ({ wch: w }));
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  };
+
+  const exportExcel = async (exportPeriod) => {
+    setExporting(exportPeriod);
     try {
+      const XLSX = await loadXLSX();
       const allOrders = await ordersAPI.adminOrders("completed");
       const orders = Array.isArray(allOrders)
         ? allOrders
         : allOrders?.results || [];
 
-      // Today full day — compare using LOCAL date (not UTC) to avoid timezone shift
-      const today = new Date();
-      const todayStr = `${today.getFullYear()}-${String(
-        today.getMonth() + 1,
-      ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      const now = new Date();
+      const wb = XLSX.utils.book_new();
+      wb.Props = { Title: "BrewHaven Sales Report", Author: "BrewHaven Admin" };
 
-      const toLocalDateStr = (dateStr) => {
-        const d = new Date(dateStr);
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
-          2,
-          "0",
-        )}-${String(d.getDate()).padStart(2, "0")}`;
-      };
+      // ── Filter orders by period ────────────────────────────────────────────
+      let filtered = [];
+      let periodLabel = "";
+      let filename = "";
 
-      const filtered = orders.filter(
-        (o) => toLocalDateStr(o.created_at) === todayStr,
-      );
+      if (exportPeriod === "daily") {
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+        const toLocal = (d) => {
+          const x = new Date(d);
+          return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
+        };
+        filtered = orders.filter((o) => toLocal(o.created_at) === todayStr);
+        periodLabel = now.toLocaleDateString("en-PH", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+        filename = `brewhaven-daily-${todayStr}.xlsx`;
+      } else if (exportPeriod === "weekly") {
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+        monday.setHours(0, 0, 0, 0);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        sunday.setHours(23, 59, 59, 999);
+        filtered = orders.filter((o) => {
+          const d = new Date(o.created_at);
+          return d >= monday && d <= sunday;
+        });
+        periodLabel = `${monday.toLocaleDateString("en-PH", { month: "short", day: "numeric" })} – ${sunday.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}`;
+        filename = `brewhaven-weekly-${monday.toISOString().slice(0, 10)}.xlsx`;
+      } else if (exportPeriod === "monthly") {
+        const y = now.getFullYear(),
+          m = now.getMonth();
+        filtered = orders.filter((o) => {
+          const d = new Date(o.created_at);
+          return d.getFullYear() === y && d.getMonth() === m;
+        });
+        periodLabel = now.toLocaleDateString("en-PH", {
+          month: "long",
+          year: "numeric",
+        });
+        filename = `brewhaven-monthly-${y}-${String(m + 1).padStart(2, "0")}.xlsx`;
+      } else if (exportPeriod === "yearly") {
+        const y = now.getFullYear();
+        filtered = orders.filter(
+          (o) => new Date(o.created_at).getFullYear() === y,
+        );
+        periodLabel = String(y);
+        filename = `brewhaven-yearly-${y}.xlsx`;
+      }
 
       const totalRevenue = filtered.reduce(
         (s, o) => s + Number(o.total_amount || 0),
@@ -335,234 +395,132 @@ export default function AdminReports() {
       );
       const products = buildProductSummary(filtered);
 
-      downloadCSV(`brewhaven-daily-report-${todayStr}.csv`, [
-        ["BrewHaven — Daily Sales Report"],
-        [
-          `Date: ${today.toLocaleDateString("en-PH", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}`,
-        ],
+      // ── Sheet 1: Summary ───────────────────────────────────────────────────
+      addSheet(wb, XLSX, "Summary", [
+        ["BrewHaven — Sales Report"],
+        [`Period: ${periodLabel}`],
         [`Generated: ${new Date().toLocaleString()}`],
         [],
-        ["SUMMARY"],
-        ["Total Orders", "Total Revenue (₱)"],
-        [filtered.length, totalRevenue.toFixed(2)],
-        [],
-        ["ORDER TRANSACTIONS"],
-        ["Reference", "Customer", "Payment", "Total (₱)", "Time"],
+        ["Metric", "Value"],
+        ["Total Orders", filtered.length],
+        ["Total Revenue (₱)", totalRevenue.toFixed(2)],
+        [
+          "Avg Order Value (₱)",
+          filtered.length
+            ? (totalRevenue / filtered.length).toFixed(2)
+            : "0.00",
+        ],
+        ["Unique Customers", new Set(filtered.map((o) => o.customer_id)).size],
+      ]);
+
+      // ── Sheet 2: Transactions ──────────────────────────────────────────────
+      addSheet(wb, XLSX, "Transactions", [
+        [
+          "Reference",
+          "Customer",
+          "Email",
+          "Payment Method",
+          "Total (₱)",
+          "Status",
+          "Date & Time",
+        ],
         ...filtered.map((o) => [
           o.reference,
           o.customer_name,
+          o.customer_email,
           o.payment_method,
           Number(o.total_amount).toFixed(2),
-          new Date(o.created_at).toLocaleTimeString("en-PH"),
+          o.status,
+          new Date(o.created_at).toLocaleString("en-PH"),
         ]),
         [],
-        ["PRODUCTS SOLD TODAY"],
-        ["Product", "Qty Sold", "Revenue (₱)"],
-        ...products.map((p) => [p.name, p.qty, p.revenue.toFixed(2)]),
+        ["TOTAL", "", "", "", `=SUM(E2:E${filtered.length + 1})`, "", ""],
       ]);
-    } catch (e) {
-      alert("Failed to export daily report.");
-    } finally {
-      setExporting(null);
-    }
-  };
 
-  const exportWeekly = async () => {
-    setExporting("weekly");
-    try {
-      const allOrders = await ordersAPI.adminOrders("completed");
-      const orders = Array.isArray(allOrders)
-        ? allOrders
-        : allOrders?.results || [];
-
-      // Current week: Monday 00:00 local → Sunday 23:59 local
-      const today = new Date();
-      const monday = new Date(today);
-      monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
-      monday.setHours(0, 0, 0, 0);
-      const sunday = new Date(monday);
-      sunday.setDate(monday.getDate() + 6);
-      sunday.setHours(23, 59, 59, 999);
-
-      const filtered = orders.filter((o) => {
-        const d = new Date(o.created_at);
-        return d >= monday && d <= sunday;
-      });
-
-      // Group by day within the week
-      const byDay = {};
-      filtered.forEach((o) => {
-        const d = new Date(o.created_at);
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
-          2,
-          "0",
-        )}-${String(d.getDate()).padStart(2, "0")}`;
-        if (!byDay[key]) byDay[key] = [];
-        byDay[key].push(o);
-      });
-
-      const totalRevenue = filtered.reduce(
-        (s, o) => s + Number(o.total_amount || 0),
-        0,
-      );
-      const products = buildProductSummary(filtered);
-      const fmtDate = (d) =>
-        d.toLocaleDateString("en-PH", { month: "short", day: "numeric" });
-      const weekLabel = `${fmtDate(monday)} – ${fmtDate(sunday)}`;
-
-      downloadCSV(
-        `brewhaven-weekly-report-${monday.toISOString().slice(0, 10)}.csv`,
+      // ── Sheet 3: Products Sold ─────────────────────────────────────────────
+      addSheet(wb, XLSX, "Products Sold", [
         [
-          ["BrewHaven — Weekly Sales Report"],
-          [`Week: ${weekLabel}`],
-          [`Generated: ${new Date().toLocaleString()}`],
-          [],
-          ["SUMMARY"],
-          ["Total Orders", "Total Revenue (₱)"],
-          [filtered.length, totalRevenue.toFixed(2)],
-          [],
-          ["DAILY BREAKDOWN"],
-          ["Date", "Orders", "Revenue (₱)"],
-          ...Object.entries(byDay)
+          "Rank",
+          "Product Name",
+          "Qty Sold",
+          "Total Revenue (₱)",
+          "No. of Orders",
+        ],
+        ...products.map((p, i) => [
+          i + 1,
+          p.name,
+          p.qty,
+          p.revenue.toFixed(2),
+          p.orders,
+        ]),
+        [],
+        [
+          "",
+          "TOTAL",
+          `=SUM(C2:C${products.length + 1})`,
+          `=SUM(D2:D${products.length + 1})`,
+          `=SUM(E2:E${products.length + 1})`,
+        ],
+      ]);
+
+      // ── Sheet 4: Breakdown (daily/weekly grouping inside the period) ───────
+      if (
+        exportPeriod === "monthly" ||
+        exportPeriod === "weekly" ||
+        exportPeriod === "yearly"
+      ) {
+        const byKey = {};
+        const keyFmt =
+          exportPeriod === "yearly"
+            ? (d) => d.toLocaleDateString("en-PH", { month: "long" })
+            : (d) =>
+                d.toLocaleDateString("en-PH", {
+                  month: "short",
+                  day: "numeric",
+                });
+
+        filtered.forEach((o) => {
+          const d = new Date(o.created_at);
+          const key =
+            exportPeriod === "yearly"
+              ? d.toLocaleDateString("en-PH", { month: "long" })
+              : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+          if (!byKey[key])
+            byKey[key] = { label: keyFmt(d), orders: 0, revenue: 0 };
+          byKey[key].orders += 1;
+          byKey[key].revenue += Number(o.total_amount || 0);
+        });
+
+        const breakdownLabel =
+          exportPeriod === "yearly" ? "Monthly Breakdown" : "Daily Breakdown";
+        addSheet(wb, XLSX, breakdownLabel, [
+          [
+            exportPeriod === "yearly" ? "Month" : "Date",
+            "No. of Orders",
+            "Revenue (₱)",
+          ],
+          ...Object.entries(byKey)
             .sort()
-            .map(([day, dayOrders]) => [
-              new Date(day).toLocaleDateString("en-PH", {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-              }),
-              dayOrders.length,
-              dayOrders
-                .reduce((s, o) => s + Number(o.total_amount || 0), 0)
-                .toFixed(2),
-            ]),
+            .map(([, v]) => [v.label, v.orders, v.revenue.toFixed(2)]),
           [],
-          ["ORDER TRANSACTIONS"],
-          ["Reference", "Customer", "Payment", "Total (₱)", "Date"],
-          ...filtered.map((o) => [
-            o.reference,
-            o.customer_name,
-            o.payment_method,
-            Number(o.total_amount).toFixed(2),
-            new Date(o.created_at).toLocaleDateString("en-PH", {
-              month: "short",
-              day: "numeric",
-            }),
-          ]),
-          [],
-          ["PRODUCTS SOLD THIS WEEK"],
-          ["Product", "Qty Sold", "Revenue (₱)"],
-          ...products.map((p) => [p.name, p.qty, p.revenue.toFixed(2)]),
-        ],
-      );
+          [
+            "TOTAL",
+            `=SUM(B2:B${Object.keys(byKey).length + 1})`,
+            `=SUM(C2:C${Object.keys(byKey).length + 1})`,
+          ],
+        ]);
+      }
+
+      XLSX.writeFile(wb, filename);
     } catch (e) {
-      alert("Failed to export weekly report.");
+      console.error("Excel export error:", e);
+      alert("Failed to export Excel report. Please try again.");
     } finally {
       setExporting(null);
     }
   };
 
-  const exportMonthly = async () => {
-    setExporting("monthly");
-    try {
-      const allOrders = await ordersAPI.adminOrders("completed");
-      const orders = Array.isArray(allOrders)
-        ? allOrders
-        : allOrders?.results || [];
-
-      // Current month only — using local month/year
-      const today = new Date();
-      const thisYear = today.getFullYear();
-      const thisMon = today.getMonth(); // 0-indexed
-
-      const filtered = orders.filter((o) => {
-        const d = new Date(o.created_at);
-        return d.getFullYear() === thisYear && d.getMonth() === thisMon;
-      });
-
-      const currentYM = `${thisYear}-${String(thisMon + 1).padStart(2, "0")}`;
-
-      // Group by day within the month
-      const byDay = {};
-      filtered.forEach((o) => {
-        const d = new Date(o.created_at);
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
-          2,
-          "0",
-        )}-${String(d.getDate()).padStart(2, "0")}`;
-        if (!byDay[key]) byDay[key] = [];
-        byDay[key].push(o);
-      });
-
-      const totalRevenue = filtered.reduce(
-        (s, o) => s + Number(o.total_amount || 0),
-        0,
-      );
-      const products = buildProductSummary(filtered);
-      const monthLabel = today.toLocaleDateString("en-PH", {
-        month: "long",
-        year: "numeric",
-      });
-
-      downloadCSV(`brewhaven-monthly-report-${currentYM}.csv`, [
-        ["BrewHaven — Monthly Sales Report"],
-        [`Month: ${monthLabel}`],
-        [`Generated: ${new Date().toLocaleString()}`],
-        [],
-        ["SUMMARY"],
-        ["Total Orders", "Total Revenue (₱)"],
-        [filtered.length, totalRevenue.toFixed(2)],
-        [],
-        ["DAILY BREAKDOWN"],
-        ["Date", "Orders", "Revenue (₱)"],
-        ...Object.entries(byDay)
-          .sort()
-          .map(([day, dayOrders]) => [
-            new Date(day).toLocaleDateString("en-PH", {
-              month: "short",
-              day: "numeric",
-            }),
-            dayOrders.length,
-            dayOrders
-              .reduce((s, o) => s + Number(o.total_amount || 0), 0)
-              .toFixed(2),
-          ]),
-        [],
-        ["ORDER TRANSACTIONS"],
-        ["Reference", "Customer", "Payment", "Total (₱)", "Date"],
-        ...filtered.map((o) => [
-          o.reference,
-          o.customer_name,
-          o.payment_method,
-          Number(o.total_amount).toFixed(2),
-          new Date(o.created_at).toLocaleDateString("en-PH", {
-            month: "short",
-            day: "numeric",
-          }),
-        ]),
-        [],
-        ["PRODUCTS SOLD THIS MONTH"],
-        ["Product", "Qty Sold", "Revenue (₱)"],
-        ...products.map((p) => [p.name, p.qty, p.revenue.toFixed(2)]),
-      ]);
-    } catch (e) {
-      alert("Failed to export monthly report.");
-    } finally {
-      setExporting(null);
-    }
-  };
-
-  const EXPORTS = [
-    { key: "daily", label: "Daily", handler: exportDaily },
-    { key: "weekly", label: "Weekly", handler: exportWeekly },
-    { key: "monthly", label: "Monthly", handler: exportMonthly },
-  ];
-
+  // ── Render ──────────────────────────────────────────────────────────────────
   if (loading)
     return (
       <div className="text-center py-16">
@@ -575,8 +533,8 @@ export default function AdminReports() {
 
   return (
     <div className="space-y-6">
-      {/* ── Period selector ── */}
-      <div className="flex gap-2">
+      {/* Period selector */}
+      <div className="flex gap-2 flex-wrap">
         {Object.entries(PERIODS).map(([key, val]) => (
           <button
             key={key}
@@ -592,7 +550,7 @@ export default function AdminReports() {
         ))}
       </div>
 
-      {/* ── KPI cards — react to period ── */}
+      {/* KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         {[
           {
@@ -600,11 +558,7 @@ export default function AdminReports() {
             value: `₱${periodRevenue.toLocaleString()}`,
             color: "text-green-600",
           },
-          {
-            label: cfg.statLabel,
-            value: periodOrders,
-            color: "text-blue-600",
-          },
+          { label: cfg.statLabel, value: periodOrders, color: "text-blue-600" },
           {
             label: "Avg Order Value",
             value: `₱${avgOrder.toLocaleString()}`,
@@ -615,7 +569,6 @@ export default function AdminReports() {
             key={card.label}
             className="bg-white rounded-3xl border-2 border-[#F5E6D3] p-5"
           >
-            <span className="text-3xl block mb-3">{card.icon}</span>
             <p className={`font-display text-3xl ${card.color} mb-1`}>
               {card.value}
             </p>
@@ -624,7 +577,7 @@ export default function AdminReports() {
         ))}
       </div>
 
-      {/* ── Charts — react to period ── */}
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-3xl border-2 border-[#F5E6D3] p-6">
           <h3 className="font-display text-lg text-[#3C1810] mb-1">
@@ -656,19 +609,27 @@ export default function AdminReports() {
         </div>
       </div>
 
-      {/* ── Top products ── */}
+      {/* Top performing products — reactive to period */}
       <div className="bg-white rounded-3xl border-2 border-[#F5E6D3] p-6">
         <div className="flex items-center justify-between mb-5">
-          <h3 className="font-display text-xl text-[#3C1810]">
-            Top Performing Products
-          </h3>
-          <span className="text-xs text-[#8B4513]/50 font-medium">
-            By revenue
-          </span>
+          <div>
+            <h3 className="font-display text-xl text-[#3C1810]">
+              Top Performing Products
+            </h3>
+            <p className="text-xs text-[#8B4513]/50 mt-0.5 capitalize">
+              {period} · by revenue
+            </p>
+          </div>
+          {topLoading && (
+            <span className="text-xs text-[#C4A882] animate-pulse">
+              Updating...
+            </span>
+          )}
         </div>
-        {topProducts.length === 0 ? (
+
+        {topProducts.length === 0 && !topLoading ? (
           <p className="text-[#8B4513]/40 text-sm text-center py-8">
-            No sales data yet.
+            No sales data for this period.
           </p>
         ) : (
           <div className="space-y-4">
@@ -685,16 +646,14 @@ export default function AdminReports() {
               return (
                 <div key={p.product_id} className="flex items-center gap-4">
                   <span
-                    className={`font-display text-xl ${
-                      RANK[i] || ""
-                    } w-6 flex-shrink-0`}
+                    className={`font-display text-xl ${RANK[i] || ""} w-6 flex-shrink-0`}
                   >
                     #{i + 1}
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center mb-1">
                       <span className="font-semibold text-[#3C1810] text-sm truncate">
-                        {p.name}
+                        {p.emoji} {p.name}
                       </span>
                       <span className="font-bold text-[#D4956A] text-sm ml-2">
                         ₱{Number(p.total_revenue).toLocaleString()}
@@ -717,19 +676,25 @@ export default function AdminReports() {
         )}
       </div>
 
-      {/* ── Export ── */}
+      {/* Export */}
       <div className="bg-white rounded-3xl border-2 border-[#F5E6D3] p-5">
         <h4 className="font-display text-lg text-[#3C1810] mb-1">
           Export Reports
         </h4>
         <p className="text-xs text-[#8B4513]/50 mb-4">
-          Downloads a CSV file to your computer.
+          Downloads a formatted Excel (.xlsx) file with multiple sheets —
+          Summary, Transactions, Products Sold, and a Breakdown tab.
         </p>
         <div className="flex gap-3 flex-wrap">
-          {EXPORTS.map(({ key, label, handler }) => (
+          {[
+            { key: "daily", label: "Today" },
+            { key: "weekly", label: "This Week" },
+            { key: "monthly", label: "This Month" },
+            { key: "yearly", label: "This Year" },
+          ].map(({ key, label }) => (
             <button
               key={key}
-              onClick={handler}
+              onClick={() => exportExcel(key)}
               disabled={!!exporting}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-semibold text-sm transition-all border-2 ${
                 exporting === key
@@ -762,9 +727,10 @@ export default function AdminReports() {
                 </>
               ) : (
                 <>
+                  <span>📊</span>
                   <span>Export {label}</span>
                   <span className="text-[#C4A882] text-xs font-normal">
-                    CSV
+                    XLSX
                   </span>
                 </>
               )}

@@ -49,7 +49,7 @@ async function request(path, options = {}, retry = true) {
     if (refreshed.ok) {
       const data = await refreshed.json();
       setTokens(data.access, refresh);
-      return request(path, options, false); // retry with new token
+      return request(path, options, false);
     } else {
       clearTokens();
       window.location.href = "/login";
@@ -57,7 +57,6 @@ async function request(path, options = {}, retry = true) {
     }
   }
 
-  // Parse response
   const text = await res.text();
   const data = text ? JSON.parse(text) : {};
 
@@ -142,6 +141,7 @@ export const reportsAPI = {
   daily: (days = 7) => api.get(`/reports/daily/?days=${days}`),
   weekly: (weeks = 8) => api.get(`/reports/weekly/?weeks=${weeks}`),
   monthly: (months = 12) => api.get(`/reports/monthly/?months=${months}`),
+  yearly: (years = 3) => api.get(`/reports/yearly/?years=${years}`),
   topProducts: (limit = 5, period = "monthly") =>
     api.get(`/reports/top-products/?limit=${limit}&period=${period}`),
 };

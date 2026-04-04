@@ -7,16 +7,13 @@ from brewhaven.apps.products.permissions import IsAdmin
 
 
 def _fmt_day(dt):
-    """Format date as 'Mar 8' — cross-platform (works on Windows and Linux)."""
     return dt.strftime("%b") + " " + str(dt.day)
 
 
 def _fmt_week(monday, sunday):
-    """Format week range as 'Mar 3–9' or 'Feb 24–Mar 2' if it spans months."""
     if monday.month == sunday.month:
         return f"{monday.strftime('%b')} {monday.day}–{sunday.day}"
     return f"{monday.strftime('%b')} {monday.day}–{sunday.strftime('%b')} {sunday.day}"
-
 
 
 def _users_col():
@@ -36,11 +33,10 @@ class DashboardSummaryView(APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request):
-        now   = datetime.now(timezone.utc)
+        now         = datetime.now(timezone.utc)
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         today_end   = now.replace(hour=23, minute=59, second=59, microsecond=999999)
 
-        # Today's completed orders
         today_pipeline = [
             {"$match": {
                 "status":     {"$nin": ["cancelled"]},
@@ -56,14 +52,13 @@ class DashboardSummaryView(APIView):
         today_result = list(_orders().aggregate(today_pipeline))
         today_data   = today_result[0] if today_result else {"count": 0, "revenue": 0.0, "avg": 0.0}
 
-        # All-time totals
         total_pipeline = [
             {"$match": {"status": "completed"}},
             {"$group": {"_id": None, "revenue": {"$sum": "$total_amount"}}},
         ]
         total_result  = list(_orders().aggregate(total_pipeline))
         total_revenue = total_result[0]["revenue"] if total_result else 0.0
-        
+
         # Today's unique customers who placed orders
         today_customers_result = _orders().aggregate([
             {"$match": {
@@ -81,7 +76,7 @@ class DashboardSummaryView(APIView):
                 "orders":    today_data.get("count",   0),
                 "revenue":   round(today_data.get("revenue", 0.0), 2),
                 "avg_order": round(today_data.get("avg",     0.0), 2),
-                "customers": today_customers, 
+                "customers": today_customers,
             },
             "total": {
                 "products":   _products().count_documents({}),
@@ -119,7 +114,7 @@ class DailyReportView(APIView):
         for r in results:
             d = datetime(r["_id"]["year"], r["_id"]["month"], r["_id"]["day"])
             data.append({
-                "day":     _fmt_day(d),            # e.g. "Mar 8"
+                "day":     _fmt_day(d),
                 "date":    d.strftime("%Y-%m-%d"),
                 "revenue": round(r["revenue"], 2),
                 "orders":  r["orders"],
@@ -152,14 +147,12 @@ class WeeklyReportView(APIView):
 
         data = []
         for r in results:
-            # Use the earliest order date in the week to anchor Mon–Sun range
             anchor     = r["min_date"]
-            # Find Monday of that ISO week
             monday     = anchor - timedelta(days=anchor.weekday())
             sunday     = monday + timedelta(days=6)
             week_label = _fmt_week(monday, sunday)
             data.append({
-                "week":    week_label,          # e.g. "Mar 3–9"
+                "week":    week_label,
                 "start":   monday.strftime("%Y-%m-%d"),
                 "end":     sunday.strftime("%Y-%m-%d"),
                 "revenue": round(r["revenue"], 2),
@@ -192,8 +185,37 @@ class MonthlyReportView(APIView):
         results = list(_orders().aggregate(pipeline))
         return Response([
             {
-                "month":   f"{MONTHS[r['_id']['month'] - 1]} {r['_id']['year']}",  # e.g. "Mar 2026"
+                "month":   f"{MONTHS[r['_id']['month'] - 1]} {r['_id']['year']}",
                 "date":    f"{r['_id']['year']}-{r['_id']['month']:02d}",
+                "revenue": round(r["revenue"], 2),
+                "orders":  r["orders"],
+            }
+            for r in results
+        ])
+
+
+class YearlyReportView(APIView):
+    """GET /api/v1/reports/yearly/?years=3"""
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        years = int(request.query_params.get("years", 3))
+        since = datetime.now(timezone.utc) - timedelta(days=years * 365)
+
+        pipeline = [
+            {"$match": {"status": "completed", "created_at": {"$gte": since}}},
+            {"$group": {
+                "_id":     {"year": {"$year": "$created_at"}},
+                "revenue": {"$sum": "$total_amount"},
+                "orders":  {"$sum": 1},
+            }},
+            {"$sort": {"_id": 1}},
+        ]
+        results = list(_orders().aggregate(pipeline))
+        return Response([
+            {
+                "year":    str(r["_id"]["year"]),
+                "date":    str(r["_id"]["year"]),
                 "revenue": round(r["revenue"], 2),
                 "orders":  r["orders"],
             }
@@ -206,22 +228,24 @@ class TopProductsView(APIView):
     permission_classes = [IsAdmin]
 
     def get(self, request):
-        limit = int(request.query_params.get("limit", 5))
-        period = request.query_params.get("period", "monthly")  # daily | weekly | monthly
+        limit  = int(request.query_params.get("limit", 5))
+        period = request.query_params.get("period", "monthly")  # daily|weekly|monthly|yearly
 
         now = datetime.now(timezone.utc)
 
         if period == "daily":
             since = now.replace(hour=0, minute=0, second=0, microsecond=0)
         elif period == "weekly":
-            since = now - timedelta(days=now.weekday())  # Monday of current week
+            since = now - timedelta(days=now.weekday())
             since = since.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif period == "yearly":
+            since = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
         else:  # monthly
             since = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
         pipeline = [
             {"$match": {
-                "status": {"$nin": ["cancelled"]},
+                "status":     {"$nin": ["cancelled"]},
                 "created_at": {"$gte": since},
             }},
             {"$unwind": "$items"},
