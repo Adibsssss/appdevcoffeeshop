@@ -64,11 +64,17 @@ class DashboardSummaryView(APIView):
         total_result  = list(_orders().aggregate(total_pipeline))
         total_revenue = total_result[0]["revenue"] if total_result else 0.0
         
-        # Today's new customers
-        today_customers = _users_col().count_documents({
-             "role": "customer",
-             "created_at": {"$gte": today_start, "$lte": today_end},  
-         })
+        # Today's unique customers who placed orders
+        today_customers_result = _orders().aggregate([
+            {"$match": {
+                "status":     {"$nin": ["cancelled"]},
+                "created_at": {"$gte": today_start, "$lte": today_end},
+            }},
+            {"$group": {"_id": "$customer_id"}},
+            {"$count": "total"},
+        ])
+        today_customers_list = list(today_customers_result)
+        today_customers = today_customers_list[0]["total"] if today_customers_list else 0
 
         return Response({
             "today": {
